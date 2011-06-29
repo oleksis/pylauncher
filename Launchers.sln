@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CLILauncher", "CLILauncher\CLILauncher.vcproj", "{632FE715-BED4-42FA-AE02-7235E88CE8E7}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GUILauncher", "GUILauncher\GUILauncher.vcproj", "{AA810970-1628-40C2-8AC4-27178590D91A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{632FE715-BED4-42FA-AE02-7235E88CE8E7}.Debug|Win32.ActiveCfg = Debug|Win32
+		{632FE715-BED4-42FA-AE02-7235E88CE8E7}.Debug|Win32.Build.0 = Debug|Win32
+		{632FE715-BED4-42FA-AE02-7235E88CE8E7}.Release|Win32.ActiveCfg = Release|Win32
+		{632FE715-BED4-42FA-AE02-7235E88CE8E7}.Release|Win32.Build.0 = Release|Win32
+		{AA810970-1628-40C2-8AC4-27178590D91A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{AA810970-1628-40C2-8AC4-27178590D91A}.Debug|Win32.Build.0 = Debug|Win32
+		{AA810970-1628-40C2-8AC4-27178590D91A}.Release|Win32.ActiveCfg = Release|Win32
+		{AA810970-1628-40C2-8AC4-27178590D91A}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

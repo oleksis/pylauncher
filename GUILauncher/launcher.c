@@ -772,34 +772,24 @@ validate_version(wchar_t * p)
 
 static wchar_t appdata_ini_path[MAX_PATH];
 static wchar_t launcher_ini_path[MAX_PATH];
-static void * version_data;
+static DWORD version_high = 0;
+static DWORD version_low = 0;
 
 static void
 get_version_info(wchar_t * version_text, size_t size)
 {
-    VS_FIXEDFILEINFO * file_info;
-    BOOL valid;
-    UINT block_size;
+    WORD maj, min, rel, bld;
 
-    if (version_data == NULL)
-        valid = FALSE;
-    else {
-        valid = VerQueryValueW(version_data, L"\\", &file_info, &block_size);
-        if (valid) {
-            WORD maj, min, rel, bld;
-            DWORD dw = file_info->dwFileVersionMS;
-
-            maj = HIWORD(dw);
-            min = LOWORD(dw);
-            dw = file_info->dwFileVersionLS;
-            rel = HIWORD(dw);
-            bld = LOWORD(dw);
-            _snwprintf_s(version_text, size, _TRUNCATE, L"%d.%d.%d.%d", maj,
-                         min, rel, bld);
-        }
-    }
-    if (!valid)
+    if (!version_high && !version_low)
         wcsncpy_s(version_text, size, L"0.1", _TRUNCATE);   /* fallback */
+    else {
+        maj = HIWORD(version_high);
+        min = LOWORD(version_high);
+        rel = HIWORD(version_low);
+        bld = LOWORD(version_low);
+        _snwprintf_s(version_text, size, _TRUNCATE, L"%d.%d.%d.%d", maj,
+                     min, rel, bld);
+    }
 }
 
 static int
@@ -816,6 +806,9 @@ process(int argc, wchar_t ** argv)
     HRESULT hr;
     wchar_t message[MSGSIZE];
     wchar_t version_text [MAX_PATH];
+    void * version_data;
+    VS_FIXEDFILEINFO * file_info;
+    UINT block_size;
 
     wp = get_env(L"PYLAUNCH_DEBUG");
     if ((wp != NULL) && (*wp != L'\0'))
@@ -841,11 +834,18 @@ process(int argc, wchar_t ** argv)
         version_data = malloc(size);
         if (version_data) {
             valid = GetFileVersionInfoW(launcher_ini_path, 0, size, version_data);
-            if (!valid) {
+            if (!valid)
                 debug(L"GetFileVersionInfo failed: %X\n", GetLastError());
-                free(version_data);
-                version_data = NULL;
+            else {
+                valid = VerQueryValueW(version_data, L"\\", &file_info, &block_size);
+                if (!valid)
+                    debug(L"VerQueryValue failed: %X\n", GetLastError());
+                else {
+                    version_high = file_info->dwFileVersionMS;
+                    version_low = file_info->dwFileVersionLS;
+                }
             }
+            free(version_data);
         }
     }
     p = wcsrchr(launcher_ini_path, L'\\');
@@ -885,13 +885,14 @@ process(int argc, wchar_t ** argv)
             error(RC_NO_PYTHON, L"Can't find a default Python.");
         if ((argc == 2) && (!_wcsicmp(p, L"-h") || !_wcsicmp(p, L"--help"))) {
             get_version_info(version_text, MAX_PATH);
-            fwprintf(stderr, L"Python Launcher for Windows Version %s\n\n", version_text);
-            fwprintf(stderr, L"usage: %s [ launcher-arguments ] script [ script-arguments ]\n\n",
+            fwprintf(stdout, L"Python Launcher for Windows Version %s\n\n", version_text);
+            fwprintf(stdout, L"usage: %s [ launcher-arguments ] script [ script-arguments ]\n\n",
                      argv[0]);
-            fputws(L"Launcher arguments:\n\n", stderr);
-            fputws(L"-2[.X]: launch using default or a specific Python 2.x version\n", stderr);
-            fputws(L"-3[.X]: launch using default or a specific Python 3.x version\n", stderr);
-            fputws(L"\nThe following help text is from Python:\n\n", stderr);
+            fputws(L"Launcher arguments:\n\n", stdout);
+            fputws(L"-2[.X]: launch using default or a specific Python 2.x version\n", stdout);
+            fputws(L"-3[.X]: launch using default or a specific Python 3.x version\n", stdout);
+            fputws(L"\nThe following help text is from Python:\n\n", stdout);
+            fflush(stdout);
         }
     }
     invoke_child(ip->executable, NULL, command);

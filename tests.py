@@ -133,6 +133,13 @@ class ScriptLaunchTest(unittest.TestCase):
         stdout, stderr = p.communicate()
         return stdout, stderr
 
+    def test_help(self):
+        p = subprocess.Popen([LAUNCHER, '-h'], stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        stdout, stderr = p.communicate()
+        self.assertTrue(stdout.startswith(b'Python Launcher for Windows'))
+        self.assertIn(b'The following help text is from Python:\r\n\r\nusage: ', stdout)
+
     def test_no_shebang_ascii(self):
         path = self.make_script()
         stdout, stderr = self.run_child(path)

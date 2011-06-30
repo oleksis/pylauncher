@@ -45,13 +45,21 @@ static FILE * log_fp = NULL;
  * warnings about security implications of getenv, and to
  * treat blank values as if they are absent.
  */
+
+static wchar_t *
+skip_whitespace(wchar_t * p)
+{
+    while (*p && isspace(*p))
+        ++p;
+    return p;
+}
+
 static wchar_t * get_env(wchar_t * key)
 {
     wchar_t * result = _wgetenv(key);
 
     if (result) {
-        while (*result && isspace(*result))
-            ++result;
+        result = skip_whitespace(result);
         if (*result == L'\0')
             result = NULL;
     }
@@ -471,9 +479,7 @@ parse_shebang(wchar_t * shebang_line, int nchars, wchar_t ** command)
 
     *command = NULL;    /* failure return */
     if ((*shebang_line++ == L'#') && (*shebang_line++ == L'!')) {
-        while (*shebang_line && isspace(*shebang_line)) {
-            ++shebang_line;
-        }
+        shebang_line = skip_whitespace(shebang_line);
         if (*shebang_line) {
             *command = shebang_line;
             for (vpp = virtual_paths; *vpp; ++vpp) {
@@ -691,8 +697,7 @@ maybe_handle_shebang(wchar_t ** argv, wchar_t * cmdline)
                         suffix = wcschr(command, L' ');
                         if (suffix != NULL) {
                             *suffix++ = L'\0';
-                            while (*suffix && isspace(*suffix))
-                                ++suffix;
+                            suffix = skip_whitespace(suffix);
                         }
                         if (wcsncmp(command, L"python", 6))
                             error(RC_BAD_VIRTUAL_PATH, L"unknown virtual path '%s'", command);
@@ -729,8 +734,7 @@ skip_me(wchar_t * cmdline)
         result = L"";
     else {
         ++result; /* skip past space or closing quote */
-        while (*result && isspace(*result))
-            ++result;
+        result = skip_whitespace(result);
     }
     return result;
 }
@@ -867,21 +871,12 @@ process(int argc, wchar_t ** argv)
          * Is the first arg a special version qualifier?
          */
         valid = validate_version(&p[1]);
-        /*
-        if (plen == 2)
-            valid = isdigit(p[1]);
-        else if (plen == 4)
-            valid = isdigit(p[1]) && (p[2] == L'.') && isdigit(p[3]);
-        else
-            valid = FALSE;
-         */
         if (valid) {
             ip = locate_python(&p[1]);
             if (ip == NULL)
                 error(RC_NO_PYTHON, L"Requested Python version (%s) not installed", &p[1]);
             command += wcslen(p);
-            while (*command && isspace(*command))
-                ++command;
+            command = skip_whitespace(command);
         }
     }
     if (!valid) {

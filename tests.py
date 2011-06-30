@@ -176,57 +176,55 @@ class ScriptLaunchTest(unittest.TestCase):
         stdout, stderr = self.run_child(path)
         self.assertTrue(self.matches(stdout, DEFAULT_PYTHON3))
 
-    if False:
-        def test_no_shebang_utf8_bom(self):
-            path = self.make_script(encoding='utf-8', bom=BOM_UTF8)
-            stdout, stderr = self.run_child(path)
-            self.assertIn(b'but no encoding declared; see', stderr)
+    def test_no_shebang_utf8_bom(self):
+        path = self.make_script(encoding='utf-8', bom=BOM_UTF8)
+        stdout, stderr = self.run_child(path)
+        self.assertTrue(self.matches(stdout, DEFAULT_PYTHON2))
 
-        def test_py_shebang_utf8_bom(self):
-            path = self.make_script(shebang_line='#!/usr/bin/env python\n',
-                                    encoding='utf-8', bom=BOM_UTF8)
-            stdout, stderr = self.run_child(path)
-            self.assertIn(b'but no encoding declared; see', stderr)
+    def test_py_shebang_utf8_bom(self):
+        path = self.make_script(shebang_line='#!/usr/bin/env python\n',
+                                encoding='utf-8', bom=BOM_UTF8)
+        stdout, stderr = self.run_child(path)
+        self.assertTrue(self.matches(stdout, DEFAULT_PYTHON2))
 
-        def test_py2_shebang_utf8_bom(self):
-            path = self.make_script(shebang_line='#!/usr/bin/env python2\n',
-                                    encoding='utf-8', bom=BOM_UTF8)
-            stdout, stderr = self.run_child(path)
-            self.assertIn(b'but no encoding declared; see', stderr)
+    def test_py2_shebang_utf8_bom(self):
+        path = self.make_script(shebang_line='#!/usr/bin/env python2\n',
+                                encoding='utf-8', bom=BOM_UTF8)
+        stdout, stderr = self.run_child(path)
+        self.assertTrue(self.matches(stdout, DEFAULT_PYTHON2))
 
-        def test_py3_shebang_utf8_bom(self):
-            path = self.make_script(shebang_line='#!/usr/bin/env python3\n',
-                                    encoding='utf-8', bom=BOM_UTF8)
-            stdout, stderr = self.run_child(path)
-            self.assertIn(b'but no encoding declared; see', stderr)
+    def test_py3_shebang_utf8_bom(self):
+        path = self.make_script(shebang_line='#!/usr/bin/env python3\n',
+                                encoding='utf-8', bom=BOM_UTF8)
+        stdout, stderr = self.run_child(path)
+        self.assertTrue(self.matches(stdout, DEFAULT_PYTHON3))
 
-        def test_no_shebang_utf8_bom_coding(self):
-            path = self.make_script(encoding='utf-8', bom=BOM_UTF8,
-                                    coding_line='# -*- coding: utf-8 -*-')
-            stdout, stderr = self.run_child(path)
-            self.assertIn(b'but no encoding declared; see', stderr)
+    def test_no_shebang_utf8_bom_coding(self):
+        path = self.make_script(encoding='utf-8', bom=BOM_UTF8,
+                                coding_line='# -*- coding: utf-8 -*-\n')
+        stdout, stderr = self.run_child(path)
+        self.assertTrue(self.matches(stdout, DEFAULT_PYTHON2))
 
-        def test_py_shebang_utf8_bom_coding(self):
-            path = self.make_script(shebang_line='#!/usr/bin/env python\n',
-                                    coding_line='# -*- coding: utf-8 -*-',
-                                    encoding='utf-8', bom=BOM_UTF8)
-            stdout, stderr = self.run_child(path)
-            self.assertIn(b'but no encoding declared; see', stderr)
+    def test_py_shebang_utf8_bom_coding(self):
+        path = self.make_script(shebang_line='#!/usr/bin/env python\n',
+                                coding_line='# -*- coding: utf-8 -*-\n',
+                                encoding='utf-8', bom=BOM_UTF8)
+        stdout, stderr = self.run_child(path)
+        self.assertTrue(self.matches(stdout, DEFAULT_PYTHON2))
 
-        def test_py2_shebang_utf8_bom_coding(self):
-            path = self.make_script(shebang_line='#!/usr/bin/env python2\n',
-                                    coding_line='# -*- coding: utf-8 -*-',
-                                    encoding='utf-8', bom=BOM_UTF8)
-            stdout, stderr = self.run_child(path)
-            self.assertIn(b'but no encoding declared; see', stderr)
+    def test_py2_shebang_utf8_bom_coding(self):
+        path = self.make_script(shebang_line='#!/usr/bin/env python2\n',
+                                coding_line='# -*- coding: utf-8 -*-\n',
+                                encoding='utf-8', bom=BOM_UTF8)
+        stdout, stderr = self.run_child(path)
+        self.assertTrue(self.matches(stdout, DEFAULT_PYTHON2))
 
-        def test_py3_shebang_utf8_bom_coding(self):
-            import pdb; pdb.set_trace()
-            path = self.make_script(shebang_line='#!/usr/bin/env python3\n',
-                                    coding_line='# -*- coding: utf-8 -*-\n',
-                                    encoding='utf-8', bom=BOM_UTF8)
-            stdout, stderr = self.run_child(path)
-            self.assertIn(b'but no encoding declared; see', stderr)
+    def test_py3_shebang_utf8_bom_coding(self):
+        path = self.make_script(shebang_line='#!/usr/bin/env python3\n',
+                                coding_line='# -*- coding: utf-8 -*-\n',
+                                encoding='utf-8', bom=BOM_UTF8)
+        stdout, stderr = self.run_child(path)
+        self.assertTrue(self.matches(stdout, DEFAULT_PYTHON3))
 
         
 if __name__ == '__main__':

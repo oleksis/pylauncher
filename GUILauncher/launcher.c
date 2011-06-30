@@ -39,8 +39,6 @@
 
 /* Just for now - static definition */
 
-#define VERSION L"0.1"
-
 static FILE * log_fp = NULL;
 
 /* This function is here to minimise Visual Studio
@@ -758,7 +756,7 @@ validate_version(wchar_t * p)
                         result = FALSE;
                     else {
                         ++p;
-                        if (wcscmp(p, L"32") && wcscmp(p, L"64"))
+                        if ((*p != '3') && (*++p != '2') && !*++p)
                             result = FALSE;
                     }
                 }
@@ -770,6 +768,35 @@ validate_version(wchar_t * p)
 
 static wchar_t appdata_ini_path[MAX_PATH];
 static wchar_t launcher_ini_path[MAX_PATH];
+static void * version_data;
+
+static void
+get_version_info(wchar_t * version_text, size_t size)
+{
+    VS_FIXEDFILEINFO * file_info;
+    BOOL valid;
+    UINT block_size;
+
+    if (version_data == NULL)
+        valid = FALSE;
+    else {
+        valid = VerQueryValueW(version_data, L"\\", &file_info, &block_size);
+        if (valid) {
+            WORD maj, min, rel, bld;
+            DWORD dw = file_info->dwFileVersionMS;
+
+            maj = HIWORD(dw);
+            min = LOWORD(dw);
+            dw = file_info->dwFileVersionLS;
+            rel = HIWORD(dw);
+            bld = LOWORD(dw);
+            _snwprintf_s(version_text, size, _TRUNCATE, L"%d.%d.%d.%d", maj,
+                         min, rel, bld);
+        }
+    }
+    if (!valid)
+        wcsncpy_s(version_text, size, L"0.1", _TRUNCATE);   /* fallback */
+}
 
 static int
 process(int argc, wchar_t ** argv)
@@ -781,7 +808,10 @@ process(int argc, wchar_t ** argv)
     size_t plen;
     INSTALLED_PYTHON * ip;
     BOOL valid;
+    DWORD size;
     HRESULT hr;
+    wchar_t message[MSGSIZE];
+    wchar_t version_text [MAX_PATH];
 
     wp = get_env(L"PYLAUNCH_DEBUG");
     if ((wp != NULL) && (*wp != L'\0'))
@@ -798,6 +828,22 @@ process(int argc, wchar_t ** argv)
         wcsncpy_s(p, MAX_PATH - plen, L"\\py.ini", _TRUNCATE);
     }
     plen = GetModuleFileNameW(NULL, launcher_ini_path, MAX_PATH);
+    size = GetFileVersionInfoSizeW(launcher_ini_path, &size);
+    if (size == 0) {
+        winerror(GetLastError(), message, MSGSIZE);
+        debug(L"GetFileVersionInfoSize failed: %s\n", message);
+    }
+    else {
+        version_data = malloc(size);
+        if (version_data) {
+            valid = GetFileVersionInfoW(launcher_ini_path, 0, size, version_data);
+            if (!valid) {
+                debug(L"GetFileVersionInfo failed: %X\n", GetLastError());
+                free(version_data);
+                version_data = NULL;
+            }
+        }
+    }
     p = wcsrchr(launcher_ini_path, L'\\');
     if (p == NULL) {
         debug(L"GetModuleFileNameW returned value has no backslash: %s\n", launcher_ini_path);
@@ -843,7 +889,8 @@ process(int argc, wchar_t ** argv)
         if (ip == NULL)
             error(RC_NO_PYTHON, L"Can't find a default Python.");
         if ((argc == 2) && (!_wcsicmp(p, L"-h") || !_wcsicmp(p, L"--help"))) {
-            fwprintf(stderr, L"Python Launcher for Windows Version %s\n\n", VERSION);
+            get_version_info(version_text, MAX_PATH);
+            fwprintf(stderr, L"Python Launcher for Windows Version %s\n\n", version_text);
             fwprintf(stderr, L"usage: %s [ launcher-arguments ] script [ script-arguments ]\n\n",
                      argv[0]);
             fputws(L"Launcher arguments:\n\n", stderr);

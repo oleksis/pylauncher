@@ -30,11 +30,16 @@
  */
 
 #include <windows.h>
+#include <shlobj.h>
 #include <stdio.h>
 #include <tchar.h>
 
 #define BUFSIZE 256
 #define MSGSIZE 1024
+
+/* Just for now - static definition */
+
+#define VERSION L"0.1"
 
 static FILE * log_fp = NULL;
 
@@ -68,7 +73,7 @@ debug(wchar_t * format, ...)
 
 static void winerror(int rc, wchar_t * message, int size)
 {
-    FormatMessage(
+    FormatMessageW(
         FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
         NULL, rc, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
         message, size, NULL);
@@ -143,7 +148,7 @@ typedef struct {
 
 static INSTALLED_PYTHON installed_pythons[MAX_INSTALLED_PYTHONS];
 
-static int num_installed_pythons = 0;
+static size_t num_installed_pythons = 0;
 
 /* to hold SOFTWARE\Python\PythonCore\X.Y\InstallPath */
 #define IP_BASE_SIZE 40
@@ -157,14 +162,16 @@ static wchar_t * location_checks[] = {
     NULL
 };
 
-static void locate_pythons_for_key(HKEY root)
+static void locate_pythons_for_key(HKEY root, REGSAM flags)
 {
     HKEY core_root, ip_key;
-    LSTATUS status = RegOpenKey(root, CORE_PATH, &core_root);
+    LSTATUS status = RegOpenKeyExW(root, CORE_PATH, 0, flags, &core_root);
     wchar_t message[MSGSIZE];
-    int i, n;
+    DWORD i;
+    size_t n;
+    BOOL ok;
     DWORD type, data_size, attrs;
-    INSTALLED_PYTHON * ip;
+    INSTALLED_PYTHON * ip, * pip;
     wchar_t ip_path[IP_SIZE];
     wchar_t * check;
     wchar_t ** checkp;
@@ -174,7 +181,7 @@ static void locate_pythons_for_key(HKEY root)
     else {
         ip = &installed_pythons[num_installed_pythons];
         for (i = 0; num_installed_pythons < MAX_INSTALLED_PYTHONS; i++) {
-            status = RegEnumKey(core_root, i, ip->version, MAX_VERSION_SIZE);
+            status = RegEnumKeyW(core_root, i, ip->version, MAX_VERSION_SIZE);
             if (status != ERROR_SUCCESS) {
                 if (status != ERROR_NO_MORE_ITEMS) {
                     /* unexpected error */
@@ -186,7 +193,7 @@ static void locate_pythons_for_key(HKEY root)
             else {
                 _snwprintf_s(ip_path, IP_SIZE, _TRUNCATE,
                              L"%s\\%s\\InstallPath", CORE_PATH, ip->version);
-                status = RegOpenKey(root, ip_path, &ip_key);
+                status = RegOpenKeyExW(root, ip_path, 0, flags, &ip_key);
                 if (status != ERROR_SUCCESS) {
                     winerror(status, message, MSGSIZE);
                     debug(L"%s: %s\n", message, ip_path);
@@ -211,19 +218,44 @@ static void locate_pythons_for_key(HKEY root)
                         _snwprintf_s(&ip->executable[data_size], MAX_PATH - data_size,
                                      MAX_PATH - data_size,
                                      L"%s%s", check, PYTHON_EXECUTABLE);
-                        attrs = GetFileAttributes(ip->executable);
-                        if ((attrs != INVALID_FILE_ATTRIBUTES) && ((attrs & FILE_ATTRIBUTE_DIRECTORY) == 0)) {
-                            ip->bits = 32;
-                            if (wcschr(ip->executable, L' ') != NULL) {
-                                /* has spaces, so quote */
-                                n = wcslen(ip->executable);
-                                memmove(&ip->executable[1], ip->executable, n);
-                                ip->executable[0] = L'\"';
-                                ip->executable[n + 1] = L'\"';
-                                ip->executable[n + 1] = L'\0';
+                        attrs = GetFileAttributesW(ip->executable);
+                        if ((attrs == INVALID_FILE_ATTRIBUTES) || (attrs & FILE_ATTRIBUTE_DIRECTORY)) {
+                            debug(L"locate_pythons_for_key: %s: invalid file attributes: %X\n",
+                                  ip->executable, attrs);
+                        }
+                        else {
+                            /* check the executable type. */
+                            ok = GetBinaryTypeW(ip->executable, &attrs);
+                            if (!ok) {
                             }
-                            ++num_installed_pythons;
-                            ++ip;
+                            else {
+                                if (attrs == SCS_64BIT_BINARY)
+                                    ip->bits = 64;
+                                else if (attrs == SCS_32BIT_BINARY)
+                                    ip->bits = 32;
+                                else
+                                    ip->bits = 0;
+                                if (ip->bits == 0) {
+                                    debug(L"locate_pythons_for_key: %s: invalid binary type: %X\n",
+                                          ip->executable, attrs);
+                                }
+                                else {
+                                    if (wcschr(ip->executable, L' ') != NULL) {
+                                        /* has spaces, so quote */
+                                        n = wcslen(ip->executable);
+                                        memmove(&ip->executable[1], ip->executable, n);
+                                        ip->executable[0] = L'\"';
+                                        ip->executable[n + 1] = L'\"';
+                                        ip->executable[n + 1] = L'\0';
+                                    }
+                                    ++num_installed_pythons;
+                                    pip = ip++;
+                                    if (num_installed_pythons >= MAX_INSTALLED_PYTHONS)
+                                        break;
+                                    /* Copy over the attributes for the next executable */
+                                    *ip = *pip;
+                                }
+                            }
                         }
                     }
                 }
@@ -234,18 +266,30 @@ static void locate_pythons_for_key(HKEY root)
 }
 
 static int
-compare_pythons(const void * ip1, const void * ip2)
+compare_pythons(const void * p1, const void * p2)
 {
-    /* note reverse sorting */
-    return wcscmp(((INSTALLED_PYTHON *) ip2)->version,
-                  ((INSTALLED_PYTHON *) ip1)->version);
+    INSTALLED_PYTHON * ip1 = (INSTALLED_PYTHON *) p1;
+    INSTALLED_PYTHON * ip2 = (INSTALLED_PYTHON *) p2;
+    /* note reverse sorting on version */
+    int result = wcscmp(ip2->version, ip1->version);
+
+    if (result == 0)
+        result = ip2->bits - ip1->bits; /* 64 before 32 */
+    return result;
 }
 
 static void
 locate_all_pythons()
 {
-    locate_pythons_for_key(HKEY_CURRENT_USER);
-    locate_pythons_for_key(HKEY_LOCAL_MACHINE);
+#if defined(_M_X64)
+    locate_pythons_for_key(HKEY_CURRENT_USER, KEY_READ | KEY_WOW64_64KEY);
+    locate_pythons_for_key(HKEY_LOCAL_MACHINE, KEY_READ | KEY_WOW64_64KEY);
+    locate_pythons_for_key(HKEY_CURRENT_USER, KEY_READ | KEY_WOW32_64KEY);
+    locate_pythons_for_key(HKEY_LOCAL_MACHINE, KEY_READ | KEY_WOW32_64KEY);
+#else
+    locate_pythons_for_key(HKEY_CURRENT_USER, KEY_READ);
+    locate_pythons_for_key(HKEY_LOCAL_MACHINE, KEY_READ);
+#endif
     qsort(installed_pythons, num_installed_pythons, sizeof(INSTALLED_PYTHON),
           compare_pythons);
 }
@@ -255,8 +299,8 @@ find_python_by_version(wchar_t const * wanted_ver)
 {
     INSTALLED_PYTHON * result = NULL;
     INSTALLED_PYTHON * ip = installed_pythons;
-    int i, n;
-    int wlen = wcslen(wanted_ver);
+    size_t i, n;
+    size_t wlen = wcslen(wanted_ver);
 
     for (i = 0; i < num_installed_pythons; i++, ip++) {
         n = wcslen(ip->version);
@@ -277,7 +321,7 @@ locate_python(wchar_t * wanted_ver)
     static wchar_t * last_char = &env_key[sizeof(env_key) / sizeof(wchar_t) - 2];
 
     INSTALLED_PYTHON * result = NULL;
-    int n = wcslen(wanted_ver);
+    size_t n = wcslen(wanted_ver);
     wchar_t * env_value;
 
     if (num_installed_pythons == 0)
@@ -365,7 +409,7 @@ run_child(wchar_t * cmdline)
     if (!ok)
         error(0, L"stderr duplication failed");
     si.dwFlags = STARTF_USESTDHANDLES;
-    ok = CreateProcess(NULL, cmdline, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi);
+    ok = CreateProcessW(NULL, cmdline, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi);
     if (!ok)
         error(0, L"Unable to create process");
     AssignProcessToJobObject(job, pi.hProcess);
@@ -424,7 +468,7 @@ parse_shebang(wchar_t * shebang_line, int nchars, wchar_t ** command)
 {
     BOOL rc = FALSE;
     wchar_t ** vpp;
-    int plen;
+    size_t plen;
     wchar_t * endp = shebang_line + nchars - 1;
 
     *command = NULL;    /* failure return */
@@ -537,7 +581,7 @@ maybe_handle_shebang(wchar_t ** argv, wchar_t * cmdline)
  * argv[0] might be a filename with a shebang.
  */
     FILE * fp;
-    errno_t rc = _tfopen_s(&fp, *argv, L"rb");
+    errno_t rc = _wfopen_s(&fp, *argv, L"rb");
     char buffer[BUFSIZE];
     wchar_t shebang_line[BUFSIZE + 1];
     size_t read;
@@ -545,7 +589,8 @@ maybe_handle_shebang(wchar_t ** argv, wchar_t * cmdline)
     char * start;
     char * shebang_alias = (char *) shebang_line;
     BOM* bom;
-    int i, j, nchars, header_len;
+    int i, j, nchars;
+    int header_len;
     BOOL is_virt;
     wchar_t * command;
     wchar_t * suffix;
@@ -577,7 +622,7 @@ maybe_handle_shebang(wchar_t ** argv, wchar_t * cmdline)
         }
         else {
             /* found line terminator - parse shebang */
-            header_len = p - start;
+            header_len = (int) (p - start);
             switch(bom->code_page) {
             case CP_UTF8:
                 nchars = MultiByteToWideChar(bom->code_page,
@@ -692,6 +737,40 @@ skip_me(wchar_t * cmdline)
     return result;
 }
 
+static BOOL
+validate_version(wchar_t * p)
+{
+    BOOL result = TRUE;
+
+    if (!isdigit(*p))               /* expect major version */
+        result = FALSE;
+    else if (*++p) {                /* more to do */
+        if (*p != L'.')             /* major/minor separator */
+            result = FALSE;
+        else {
+            ++p;
+            if (!isdigit(*p))       /* expect minor version */
+                result = FALSE;
+            else {
+                ++p;
+                if (*p) {           /* more to do */
+                    if (*p != L'-')
+                        result = FALSE;
+                    else {
+                        ++p;
+                        if (wcscmp(p, L"32") && wcscmp(p, L"64"))
+                            result = FALSE;
+                    }
+                }
+            }
+        }
+    }
+    return result;
+}
+
+static wchar_t appdata_ini_path[MAX_PATH];
+static wchar_t launcher_ini_path[MAX_PATH];
+
 static int
 process(int argc, wchar_t ** argv)
 {
@@ -699,17 +778,40 @@ process(int argc, wchar_t ** argv)
     wchar_t * command;
     wchar_t * p;
     int rc = 0;
-    int plen;
+    size_t plen;
     INSTALLED_PYTHON * ip;
     BOOL valid;
+    HRESULT hr;
 
     wp = get_env(L"PYLAUNCH_DEBUG");
     if ((wp != NULL) && (*wp != L'\0'))
         log_fp = stderr;
 
-    command = skip_me(GetCommandLine());
-    if (argc <= 1)
+    hr = SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL, 0, appdata_ini_path);
+    if (hr != S_OK) {
+        debug(L"SHGetFolderPath failed: %X\n", hr);
+        appdata_ini_path[0] = L'\0';
+    }
+    else {
+        plen = wcslen(appdata_ini_path);
+        p = &appdata_ini_path[plen];
+        wcsncpy_s(p, MAX_PATH - plen, L"\\py.ini", _TRUNCATE);
+    }
+    plen = GetModuleFileNameW(NULL, launcher_ini_path, MAX_PATH);
+    p = wcsrchr(launcher_ini_path, L'\\');
+    if (p == NULL) {
+        debug(L"GetModuleFileNameW returned value has no backslash: %s\n", launcher_ini_path);
+        launcher_ini_path[0] = L'\0';
+    }
+    else {
+        wcsncpy_s(p, MAX_PATH - (p - launcher_ini_path), L"\\py.ini", _TRUNCATE);
+    }
+
+    command = skip_me(GetCommandLineW());
+    if (argc <= 1) {
         valid = FALSE;
+        p = NULL;
+    }
     else {
         p = argv[1];
         plen = wcslen(p);
@@ -718,12 +820,15 @@ process(int argc, wchar_t ** argv)
         /* No file with shebang, or an unrecognised shebang.
          * Is the first arg a special version qualifier?
          */
+        valid = validate_version(&p[1]);
+        /*
         if (plen == 2)
             valid = isdigit(p[1]);
         else if (plen == 4)
             valid = isdigit(p[1]) && (p[2] == L'.') && isdigit(p[3]);
         else
             valid = FALSE;
+         */
         if (valid) {
             ip = locate_python(&p[1]);
             if (ip == NULL)
@@ -737,6 +842,15 @@ process(int argc, wchar_t ** argv)
         ip = locate_python(L"");
         if (ip == NULL)
             error(RC_NO_PYTHON, L"Can't find a default Python.");
+        if ((argc == 2) && (!_wcsicmp(p, L"-h") || !_wcsicmp(p, L"--help"))) {
+            fwprintf(stderr, L"Python Launcher for Windows Version %s\n\n", VERSION);
+            fwprintf(stderr, L"usage: %s [ launcher-arguments ] script [ script-arguments ]\n\n",
+                     argv[0]);
+            fputws(L"Launcher arguments:\n\n", stderr);
+            fputws(L"-2[.X]: launch using default or a specific Python 2.x version\n", stderr);
+            fputws(L"-3[.X]: launch using default or a specific Python 3.x version\n", stderr);
+            fputws(L"\nThe following help text is from Python:\n\n", stderr);
+        }
     }
     invoke_child(ip->executable, NULL, command);
     return rc;

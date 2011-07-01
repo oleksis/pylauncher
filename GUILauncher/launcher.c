@@ -463,11 +463,99 @@ invoke_child(wchar_t * executable, wchar_t * suffix, wchar_t * cmdline)
     }
 }
 
-static wchar_t * virtual_paths [] = {
-    L"/usr/bin/env ",
-    L"/usr/bin/",
+static wchar_t * builtin_virtual_paths [] = {
+    L"/usr/bin/env python",
+    L"/usr/bin/python",
+    L"/usr/local/bin/python",
+    L"python",
     NULL
 };
+
+static wchar_t appdata_ini_path[MAX_PATH];
+static wchar_t launcher_ini_path[MAX_PATH];
+
+/* For now, a static array of commands. */
+
+#define MAX_COMMANDS 100
+
+typedef struct {
+    wchar_t key[MAX_PATH];
+    wchar_t value[MSGSIZE];
+} COMMAND;
+
+static COMMAND commands[MAX_COMMANDS];
+static int num_commands = 0;
+
+static COMMAND * find_command(wchar_t * name)
+{
+    COMMAND * result = NULL;
+    COMMAND * cp = commands;
+    int i;
+
+    for (i = 0; i < num_commands; i++, cp++) {
+        if (_wcsicmp(cp->key, name) == 0) {
+            result = cp;
+            break;
+        }
+    }
+    return result;
+}
+
+static void
+update_command(COMMAND * cp, wchar_t * name, wchar_t * cmdline)
+{
+    wcsncpy_s(cp->key, MAX_PATH, name, _TRUNCATE);
+    wcsncpy_s(cp->value, MSGSIZE, cmdline, _TRUNCATE);
+}
+
+static void
+add_command(wchar_t * name, wchar_t * cmdline)
+{
+    if (num_commands >= MAX_COMMANDS) {
+        debug(L"can't add %s = '%s': no room\n", name, cmdline);
+    }
+    else {
+        COMMAND * cp = &commands[num_commands++];
+
+        update_command(cp, name, cmdline);
+    }
+}
+
+static void
+read_config_file(wchar_t * config_path)
+{
+    wchar_t keynames[MSGSIZE];
+    wchar_t value[MSGSIZE];
+    DWORD read;
+    wchar_t * key;
+    COMMAND * cp;
+
+    read = GetPrivateProfileStringW(L"commands", NULL, NULL, keynames, MSGSIZE, config_path);
+    if (read == MSGSIZE - 1) {
+        debug(L"read_commands: %s: not enough space for names\n", config_path);
+    }
+    key = keynames;
+    while (*key) {
+        read = GetPrivateProfileString(L"commands", key, NULL, value, MSGSIZE, config_path);
+        if (read == MSGSIZE - 1) {
+            debug(L"read_commands: %s: not enough space for %s\n", config_path, key);
+        }
+        cp = find_command(key);
+        if (cp == NULL)
+            add_command(key, value);
+        else
+            update_command(cp, key, value);
+        key += wcslen(key) + 1;
+    }
+}
+
+static void read_commands()
+{
+    if (launcher_ini_path[0])
+        read_config_file(launcher_ini_path);
+    if (appdata_ini_path[0])
+        read_config_file(appdata_ini_path);
+}
 
 static BOOL
 parse_shebang(wchar_t * shebang_line, int nchars, wchar_t ** command)
@@ -475,20 +563,47 @@ parse_shebang(wchar_t * shebang_line, int nchars, wchar_t ** command)
     BOOL rc = FALSE;
     wchar_t ** vpp;
     size_t plen;
+    wchar_t * p;
+    wchar_t zapped;
     wchar_t * endp = shebang_line + nchars - 1;
+    COMMAND * cp;
 
     *command = NULL;    /* failure return */
+
     if ((*shebang_line++ == L'#') && (*shebang_line++ == L'!')) {
         shebang_line = skip_whitespace(shebang_line);
         if (*shebang_line) {
             *command = shebang_line;
-            for (vpp = virtual_paths; *vpp; ++vpp) {
+            for (vpp = builtin_virtual_paths; *vpp; ++vpp) {
                 plen = wcslen(*vpp);
                 if (wcsncmp(shebang_line, *vpp, plen) == 0) {
                     rc = TRUE;
-                    *command += plen;
+                    /* We can do this because all builtin commands contain
+                     * "python".
+                     */
+                    *command = wcsstr(shebang_line, L"python");
                     break;
                 }
+            }
+            if (*vpp == NULL) {
+                /*
+                 * Not found in builtins - look in customised commands.
+                 *
+                 * We can't permanently modify the shebang line in case
+                 * it's not a customised command, but we can temporarily
+                 * stick a NUL after the command while searching for it,
+                 * then put back the char we zapped.
+                 */
+                p = wcspbrk(shebang_line, L" \t\r\n");
+                if (p != NULL) {
+                    zapped = *p;
+                    *p = L'\0';
+                }
+                cp = find_command(shebang_line);
+                if (p != NULL)
+                    *p = zapped;
+                if (cp != NULL)
+                    *command = cp->value;
             }
             /* remove trailing whitespace */
             while ((endp > shebang_line) && isspace(*endp))
@@ -512,6 +627,10 @@ typedef struct {
     UINT code_page;
 } BOM;
 
+/*
+ * Strictly, we don't need to handle UTF-16 anf UTF-32, since Python itself doesn't.
+ * Never mind, one day it might.
+ */
 static BOM BOMs[] = {
     { 3, { 0xEF, 0xBB, 0xBF }, CP_UTF8 },           /* UTF-8 - keep first */
     { 2, { 0xFF, 0xFE }, CP_UTF16LE },              /* UTF-16LE */
@@ -613,7 +732,8 @@ maybe_handle_shebang(wchar_t ** argv, wchar_t * cmdline)
             bom = BOMs; /* points to UTF-8 entry - the default */
         }
         else {
-            debug(L"maybe_handle_shebang: BOM found, code page %d\n", bom->code_page);
+            debug(L"maybe_handle_shebang: BOM found, code page %d\n",
+                  bom->code_page);
             start = &buffer[bom->length];
         }
         p = find_terminator(start, BUFSIZE, bom);
@@ -625,7 +745,13 @@ maybe_handle_shebang(wchar_t ** argv, wchar_t * cmdline)
             debug(L"maybe_handle_shebang: No line terminator found");
         }
         else {
-            /* found line terminator - parse shebang */
+            /*
+             * Found line terminator - parse the shebang.
+             *
+             * Strictly, we don't need to handle UTF-16 anf UTF-32,
+             * since Python itself doesn't.
+             * Never mind, one day it might.
+             */
             header_len = (int) (p - start);
             switch(bom->code_page) {
             case CP_UTF8:
@@ -770,8 +896,6 @@ validate_version(wchar_t * p)
     return result;
 }
 
-static wchar_t appdata_ini_path[MAX_PATH];
-static wchar_t launcher_ini_path[MAX_PATH];
 static DWORD version_high = 0;
 static DWORD version_low = 0;
 
@@ -802,7 +926,7 @@ process(int argc, wchar_t ** argv)
     size_t plen;
     INSTALLED_PYTHON * ip;
     BOOL valid;
-    DWORD size;
+    DWORD size, attrs;
     HRESULT hr;
     wchar_t message[MSGSIZE];
     wchar_t version_text [MAX_PATH];
@@ -823,6 +947,11 @@ process(int argc, wchar_t ** argv)
         plen = wcslen(appdata_ini_path);
         p = &appdata_ini_path[plen];
         wcsncpy_s(p, MAX_PATH - plen, L"\\py.ini", _TRUNCATE);
+        attrs = GetFileAttributesW(appdata_ini_path);
+        if (attrs == INVALID_FILE_ATTRIBUTES) {
+            debug(L"File '%s' non-existent\n", appdata_ini_path);
+            appdata_ini_path[0] = L'\0';
+        }
     }
     plen = GetModuleFileNameW(NULL, launcher_ini_path, MAX_PATH);
     size = GetFileVersionInfoSizeW(launcher_ini_path, &size);
@@ -855,6 +984,11 @@ process(int argc, wchar_t ** argv)
     }
     else {
         wcsncpy_s(p, MAX_PATH - (p - launcher_ini_path), L"\\py.ini", _TRUNCATE);
+        attrs = GetFileAttributesW(launcher_ini_path);
+        if (attrs == INVALID_FILE_ATTRIBUTES) {
+            debug(L"File '%s' non-existent\n", launcher_ini_path);
+            launcher_ini_path[0] = L'\0';
+        }
     }
 
     command = skip_me(GetCommandLineW());
@@ -865,8 +999,10 @@ process(int argc, wchar_t ** argv)
     else {
         p = argv[1];
         plen = wcslen(p);
-        if (p[0] != L'-')
+        if (p[0] != L'-') {
+            read_commands();
             maybe_handle_shebang(&argv[1], command);
+        }
         /* No file with shebang, or an unrecognised shebang.
          * Is the first arg a special version qualifier?
          */

@@ -88,6 +88,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				CommandLine="copy_config $(TargetDir)"
 			/>
 		</Configuration>
 		<Configuration
@@ -200,6 +201,18 @@
 				>
 			</File>
 		</Filter>
+		<File
+			RelativePath=".\copy_config.cmd"
+			>
+		</File>
+		<File
+			RelativePath=".\global.ini"
+			>
+		</File>
+		<File
+			RelativePath=".\local.ini"
+			>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>

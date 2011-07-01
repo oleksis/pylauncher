@@ -25,7 +25,7 @@
  *
  * Based on the work of:
  *
- * Mark Hammond (original author)
+ * Mark Hammond (original author of Python version)
  * Curt Hagenlocher (job management)
  */
 
@@ -106,8 +106,6 @@ static int error(int rc, wchar_t * format, ... )
     ExitProcess(rc);
 }
 
-#if PEP397
-
 #if defined(_WINDOWS)
 
 #define PYTHON_EXECUTABLE L"pythonw.exe"
@@ -117,22 +115,6 @@ static int error(int rc, wchar_t * format, ... )
 #define PYTHON_EXECUTABLE L"python.exe"
 
 #endif
-
-#else
-
-#if defined(_WINDOWS)
-
-#define SCRIPT_SUFFIX L"-script.pyw"
-
-#else
-
-#define SCRIPT_SUFFIX L"-script.py"
-
-#endif
-
-#endif
-
-#if PEP397
 
 #define RC_NO_STD_HANDLES   100
 #define RC_CREATE_PROCESS   101
@@ -215,18 +197,21 @@ static void locate_pythons_for_key(HKEY root, REGSAM flags)
                     continue;
                 }
                 if (type == REG_SZ) {
-                    data_size = data_size / sizeof(wchar_t) - 1;    /* -1 for NUL */
+                    data_size = data_size / sizeof(wchar_t) - 1;  /* for NUL */
                     if (ip->executable[data_size - 1] == L'\\')
                         --data_size; /* reg value ended in a backslash */
                     /* ip->executable is data_size long */
                     for (checkp = location_checks; *checkp; ++checkp) {
                         check = *checkp;
-                        _snwprintf_s(&ip->executable[data_size], MAX_PATH - data_size,
+                        _snwprintf_s(&ip->executable[data_size],
+                                     MAX_PATH - data_size,
                                      MAX_PATH - data_size,
                                      L"%s%s", check, PYTHON_EXECUTABLE);
                         attrs = GetFileAttributesW(ip->executable);
-                        if ((attrs == INVALID_FILE_ATTRIBUTES) || (attrs & FILE_ATTRIBUTE_DIRECTORY)) {
-                            debug(L"locate_pythons_for_key: %s: invalid file attributes: %X\n",
+                        if ((attrs == INVALID_FILE_ATTRIBUTES) ||
+                            (attrs & FILE_ATTRIBUTE_DIRECTORY)) {
+                            debug(L"locate_pythons_for_key: %s: invalid file \
+attributes: %X\n",
                                   ip->executable, attrs);
                         }
                         else {
@@ -242,23 +227,26 @@ static void locate_pythons_for_key(HKEY root, REGSAM flags)
                                 else
                                     ip->bits = 0;
                                 if (ip->bits == 0) {
-                                    debug(L"locate_pythons_for_key: %s: invalid binary type: %X\n",
+                                    debug(L"locate_pythons_for_key: %s: \
+invalid binary type: %X\n",
                                           ip->executable, attrs);
                                 }
                                 else {
                                     if (wcschr(ip->executable, L' ') != NULL) {
                                         /* has spaces, so quote */
                                         n = wcslen(ip->executable);
-                                        memmove(&ip->executable[1], ip->executable, n);
+                                        memmove(&ip->executable[1],
+                                                ip->executable, n);
                                         ip->executable[0] = L'\"';
                                         ip->executable[n + 1] = L'\"';
                                         ip->executable[n + 1] = L'\0';
                                     }
                                     ++num_installed_pythons;
                                     pip = ip++;
-                                    if (num_installed_pythons >= MAX_INSTALLED_PYTHONS)
+                                    if (num_installed_pythons >=
+                                        MAX_INSTALLED_PYTHONS)
                                         break;
-                                    /* Copy over the attributes for the next executable */
+                                    /* Copy over the attributes for the next */
                                     *ip = *pip;
                                 }
                             }
@@ -324,7 +312,8 @@ static INSTALLED_PYTHON *
 locate_python(wchar_t * wanted_ver)
 {
     static wchar_t env_key [] = { L"PY_DEFAULT_PYTHONX" };
-    static wchar_t * last_char = &env_key[sizeof(env_key) / sizeof(wchar_t) - 2];
+    static wchar_t * last_char = &env_key[sizeof(env_key) /
+                                          sizeof(wchar_t) - 2];
 
     INSTALLED_PYTHON * result = NULL;
     size_t n = wcslen(wanted_ver);
@@ -445,11 +434,13 @@ invoke_child(wchar_t * executable, wchar_t * suffix, wchar_t * cmdline)
         }
         else {
             /* add 3 for 2 space separators + terminating NUL. */
-            child_command_size = wcslen(executable) + wcslen(suffix) + wcslen(cmdline) + 3;
+            child_command_size = wcslen(executable) + wcslen(suffix) +
+                                    wcslen(cmdline) + 3;
         }
         child_command = calloc(child_command_size, sizeof(wchar_t));
         if (child_command == NULL)
-            error(0, L"unable to allocate %d bytes for child command.", child_command_size);
+            error(0, L"unable to allocate %d bytes for child command.",
+                  child_command_size);
         if (no_suffix)
             _snwprintf_s(child_command, child_command_size,
                          child_command_size - 1, L"%s %s",
@@ -530,15 +521,18 @@ read_config_file(wchar_t * config_path)
     wchar_t * key;
     COMMAND * cp;
 
-    read = GetPrivateProfileStringW(L"commands", NULL, NULL, keynames, MSGSIZE, config_path);
+    read = GetPrivateProfileStringW(L"commands", NULL, NULL, keynames, MSGSIZE,
+                                    config_path);
     if (read == MSGSIZE - 1) {
         debug(L"read_commands: %s: not enough space for names\n", config_path);
     }
     key = keynames;
     while (*key) {
-        read = GetPrivateProfileString(L"commands", key, NULL, value, MSGSIZE, config_path);
+        read = GetPrivateProfileString(L"commands", key, NULL, value, MSGSIZE,
+                                       config_path);
         if (read == MSGSIZE - 1) {
-            debug(L"read_commands: %s: not enough space for %s\n", config_path, key);
+            debug(L"read_commands: %s: not enough space for %s\n",
+                  config_path, key);
         }
         cp = find_command(key);
         if (cp == NULL)
@@ -628,8 +622,8 @@ typedef struct {
 } BOM;
 
 /*
- * Strictly, we don't need to handle UTF-16 anf UTF-32, since Python itself doesn't.
- * Never mind, one day it might.
+ * Strictly, we don't need to handle UTF-16 anf UTF-32, since Python itself
+ * doesn't. Never mind, one day it might - there's no harm leaving it in.
  */
 static BOM BOMs[] = {
     { 3, { 0xEF, 0xBB, 0xBF }, CP_UTF8 },           /* UTF-8 - keep first */
@@ -762,7 +756,8 @@ maybe_handle_shebang(wchar_t ** argv, wchar_t * cmdline)
                 break;
             case CP_UTF16BE:
                 if (header_len % 2 != 0) {
-                    debug(L"maybe_handle_shebang: UTF-16BE, but an odd number of bytes: %d", header_len);
+                    debug(L"maybe_handle_shebang: UTF-16BE, but an odd number \
+of bytes: %d", header_len);
                     nchars = 0;
                 }
                 else {
@@ -775,7 +770,8 @@ maybe_handle_shebang(wchar_t ** argv, wchar_t * cmdline)
                 break;
             case CP_UTF16LE:
                 if ((header_len % 2) != 0) {
-                    debug(L"UTF-16LE, but an odd number of bytes: %d", header_len);
+                    debug(L"UTF-16LE, but an odd number of bytes: %d",
+                          header_len);
                     nchars = 0;
                 }
                 else {
@@ -790,7 +786,8 @@ maybe_handle_shebang(wchar_t ** argv, wchar_t * cmdline)
                     nchars = 0;
                 }
                 else {
-                    for (i = header_len, j = header_len / 2; i > 0; i -= 4, j -= 2) {
+                    for (i = header_len, j = header_len / 2; i > 0; i -= 4,
+                                                                    j -= 2) {
                         shebang_alias[j - 1] = start[i - 2];
                         shebang_alias[j - 2] = start[i - 1];
                     }
@@ -803,7 +800,8 @@ maybe_handle_shebang(wchar_t ** argv, wchar_t * cmdline)
                     nchars = 0;
                 }
                 else {
-                    for (i = header_len, j = header_len / 2; i > 0; i -= 4, j -= 2) {
+                    for (i = header_len, j = header_len / 2; i > 0; i -= 4,
+                                                                    j -= 2) {
                         shebang_alias[j - 1] = start[i - 3];
                         shebang_alias[j - 2] = start[i - 4];
                     }
@@ -826,10 +824,12 @@ maybe_handle_shebang(wchar_t ** argv, wchar_t * cmdline)
                             suffix = skip_whitespace(suffix);
                         }
                         if (wcsncmp(command, L"python", 6))
-                            error(RC_BAD_VIRTUAL_PATH, L"unknown virtual path '%s'", command);
+                            error(RC_BAD_VIRTUAL_PATH, L"unknown virtual \
+path '%s'", command);
                         ip = locate_python(command + 6);
                         if (ip == NULL) {
-                            error(RC_NO_PYTHON, L"Requested Python version (%s) is not installed", command + 6);
+                            error(RC_NO_PYTHON, L"Requested Python version \
+(%s) is not installed", command + 6);
                         }
                         else {
                             invoke_child(ip->executable, suffix, cmdline);
@@ -962,11 +962,13 @@ process(int argc, wchar_t ** argv)
     else {
         version_data = malloc(size);
         if (version_data) {
-            valid = GetFileVersionInfoW(launcher_ini_path, 0, size, version_data);
+            valid = GetFileVersionInfoW(launcher_ini_path, 0, size,
+                                        version_data);
             if (!valid)
                 debug(L"GetFileVersionInfo failed: %X\n", GetLastError());
             else {
-                valid = VerQueryValueW(version_data, L"\\", &file_info, &block_size);
+                valid = VerQueryValueW(version_data, L"\\", &file_info,
+                                       &block_size);
                 if (!valid)
                     debug(L"VerQueryValue failed: %X\n", GetLastError());
                 else {
@@ -979,11 +981,13 @@ process(int argc, wchar_t ** argv)
     }
     p = wcsrchr(launcher_ini_path, L'\\');
     if (p == NULL) {
-        debug(L"GetModuleFileNameW returned value has no backslash: %s\n", launcher_ini_path);
+        debug(L"GetModuleFileNameW returned value has no backslash: %s\n",
+              launcher_ini_path);
         launcher_ini_path[0] = L'\0';
     }
     else {
-        wcsncpy_s(p, MAX_PATH - (p - launcher_ini_path), L"\\py.ini", _TRUNCATE);
+        wcsncpy_s(p, MAX_PATH - (p - launcher_ini_path), L"\\py.ini",
+                  _TRUNCATE);
         attrs = GetFileAttributesW(launcher_ini_path);
         if (attrs == INVALID_FILE_ATTRIBUTES) {
             debug(L"File '%s' non-existent\n", launcher_ini_path);
@@ -1010,7 +1014,8 @@ process(int argc, wchar_t ** argv)
         if (valid) {
             ip = locate_python(&p[1]);
             if (ip == NULL)
-                error(RC_NO_PYTHON, L"Requested Python version (%s) not installed", &p[1]);
+                error(RC_NO_PYTHON, L"Requested Python version (%s) not \
+installed", &p[1]);
             command += wcslen(p);
             command = skip_whitespace(command);
         }
@@ -1021,12 +1026,16 @@ process(int argc, wchar_t ** argv)
             error(RC_NO_PYTHON, L"Can't find a default Python.");
         if ((argc == 2) && (!_wcsicmp(p, L"-h") || !_wcsicmp(p, L"--help"))) {
             get_version_info(version_text, MAX_PATH);
-            fwprintf(stdout, L"Python Launcher for Windows Version %s\n\n", version_text);
-            fwprintf(stdout, L"usage: %s [ launcher-arguments ] script [ script-arguments ]\n\n",
+            fwprintf(stdout, L"Python Launcher for Windows Version %s\n\n",
+                     version_text);
+            fwprintf(stdout, L"usage: %s [ launcher-arguments ] script \
+[ script-arguments ]\n\n",
                      argv[0]);
             fputws(L"Launcher arguments:\n\n", stdout);
-            fputws(L"-2[.X]: launch using default or a specific Python 2.x version\n", stdout);
-            fputws(L"-3[.X]: launch using default or a specific Python 3.x version\n", stdout);
+            fputws(L"-2[.X]: launch using default or a specific Python 2.x \
+version\n", stdout);
+            fputws(L"-3[.X]: launch using default or a specific Python 3.x \
+version\n", stdout);
             fputws(L"\nThe following help text is from Python:\n\n", stdout);
             fflush(stdout);
         }
@@ -1034,23 +1043,6 @@ process(int argc, wchar_t ** argv)
     invoke_child(ip->executable, NULL, command);
     return rc;
 }
-
-#else
-
-static int process(int argc, char ** argv)
-{
-    wchar_t script_name[BUFSIZE];
-    DWORD n;
-
-    n = GetModuleFileName(NULL, script_name, BUFSIZE);
-    if (n == 0)
-        return error("Unable to get executable name", NULL);
-    script_name[n] = '\0';
-    _tcsncpy_s(&script_name[n], BUFSIZE - n, SCRIPT_SUFFIX, _tcslen(SCRIPT_SUFFIX));
-    return 0;
-}
-
-#endif
 
 #if defined(_WINDOWS)
 

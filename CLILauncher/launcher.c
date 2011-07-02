@@ -41,11 +41,6 @@
 
 static FILE * log_fp = NULL;
 
-/* This function is here to minimise Visual Studio
- * warnings about security implications of getenv, and to
- * treat blank values as if they are absent.
- */
-
 static wchar_t *
 skip_whitespace(wchar_t * p)
 {
@@ -54,6 +49,11 @@ skip_whitespace(wchar_t * p)
     return p;
 }
 
+/*
+ * This function is here to minimise Visual Studio
+ * warnings about security implications of getenv, and to
+ * treat blank values as if they are absent.
+ */
 static wchar_t * get_env(wchar_t * key)
 {
     wchar_t * result = _wgetenv(key);
@@ -122,6 +122,7 @@ static int error(int rc, wchar_t * format, ... )
 #define RC_NO_PYTHON        103
 
 #define MAX_VERSION_SIZE    4
+
 typedef struct {
     wchar_t version[MAX_VERSION_SIZE]; /* m.n */
     int bits;   /* 32 or 64 */
@@ -308,33 +309,76 @@ find_python_by_version(wchar_t const * wanted_ver)
     return result;
 }
 
+
+static wchar_t appdata_ini_path[MAX_PATH];
+static wchar_t launcher_ini_path[MAX_PATH];
+
+/*
+ * Get a value either from the environment or a configuration file.
+ * The key passed in will either be "python", "python2" or "python3".
+ */
+static wchar_t *
+get_configured_value(wchar_t * key)
+{
+/*
+ * Note: this static value is used to return a configrued value
+ * obtained either from the environment or configuration file.
+ * This should be OK since there wouldn't be any concurrent calls.
+ */
+    static wchar_t configured_value[MSGSIZE];
+    wchar_t * result = NULL;
+    DWORD size;
+
+    /* First, search the environment. */
+    _snwprintf_s(configured_value, MSGSIZE, _TRUNCATE, L"py_%s", key);
+    result = get_env(configured_value);
+    if (result == NULL) {
+        /* Not in environment: check local configuration. */
+        if (appdata_ini_path[0]) {
+            size = GetPrivateProfileStringW(L"defaults", key, NULL,
+                                            configured_value, MSGSIZE,
+                                            appdata_ini_path);
+            if (size > 0)
+                result = configured_value;
+            else if (launcher_ini_path[0]) {
+                /* Not in environment or local: check global configuration. */
+                size = GetPrivateProfileStringW(L"defaults", key, NULL,
+                                                configured_value, MSGSIZE,
+                                                launcher_ini_path);
+                if (size > 0)
+                    result = configured_value;
+            }
+        }
+    }
+    return result;
+}
+
 static INSTALLED_PYTHON *
 locate_python(wchar_t * wanted_ver)
 {
-    static wchar_t env_key [] = { L"PY_DEFAULT_PYTHONX" };
-    static wchar_t * last_char = &env_key[sizeof(env_key) /
-                                          sizeof(wchar_t) - 2];
-
+    static wchar_t config_key [] = { L"pythonX" };
+    static wchar_t * last_char = &config_key[sizeof(config_key) /
+                                             sizeof(wchar_t) - 2];
     INSTALLED_PYTHON * result = NULL;
     size_t n = wcslen(wanted_ver);
-    wchar_t * env_value;
+    wchar_t * configured_value;
 
     if (num_installed_pythons == 0)
         locate_all_pythons();
 
     if (n == 1) {   /* just major version specified */
         *last_char = *wanted_ver;
-        env_value = get_env(env_key);
-        if (env_value != NULL)
-            wanted_ver = env_value;
+        configured_value = get_configured_value(config_key);
+        if (configured_value != NULL)
+            wanted_ver = configured_value;
     }
     if (*wanted_ver)
         result = find_python_by_version(wanted_ver);
     else {
         *last_char = L'\0'; /* look for an overall default */
-        env_value = get_env(env_key);
-        if (env_value)
-            result = find_python_by_version(env_value);
+        configured_value = get_configured_value(config_key);
+        if (configured_value)
+            result = find_python_by_version(configured_value);
         if (result == NULL)
             result = find_python_by_version(L"2");
         if (result == NULL)
@@ -462,9 +506,6 @@ static wchar_t * builtin_virtual_paths [] = {
     NULL
 };
 
-static wchar_t appdata_ini_path[MAX_PATH];
-static wchar_t launcher_ini_path[MAX_PATH];
-
 /* For now, a static array of commands. */
 
 #define MAX_COMMANDS 100
@@ -552,7 +593,8 @@ static void read_commands()
 }
 
 static BOOL
-parse_shebang(wchar_t * shebang_line, int nchars, wchar_t ** command)
+parse_shebang(wchar_t * shebang_line, int nchars, wchar_t ** command,
+              wchar_t ** suffix)
 {
     BOOL rc = FALSE;
     wchar_t ** vpp;
@@ -563,6 +605,7 @@ parse_shebang(wchar_t * shebang_line, int nchars, wchar_t ** command)
     COMMAND * cp;
 
     *command = NULL;    /* failure return */
+    *suffix = NULL;
 
     if ((*shebang_line++ == L'#') && (*shebang_line++ == L'!')) {
         shebang_line = skip_whitespace(shebang_line);
@@ -596,8 +639,11 @@ parse_shebang(wchar_t * shebang_line, int nchars, wchar_t ** command)
                 cp = find_command(shebang_line);
                 if (p != NULL)
                     *p = zapped;
-                if (cp != NULL)
+                if (cp != NULL) {
                     *command = cp->value;
+                    if (p != NULL)
+                        *suffix = skip_whitespace(p);
+                }
             }
             /* remove trailing whitespace */
             while ((endp > shebang_line) && isspace(*endp))
@@ -811,11 +857,12 @@ of bytes: %d", header_len);
             }
             if (nchars > 0) {
                 shebang_line[--nchars] = L'\0';
-                is_virt = parse_shebang(shebang_line, nchars, &command);
+                is_virt = parse_shebang(shebang_line, nchars, &command,
+                                        &suffix);
                 if (command != NULL) {
                     debug(L"parse_shebang: found command: %s\n", command);
                     if (!is_virt) {
-                        invoke_child(command, NULL, cmdline);
+                        invoke_child(command, suffix, cmdline);
                     }
                     else {
                         suffix = wcschr(command, L' ');

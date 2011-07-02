@@ -1093,10 +1093,10 @@ version\n", stdout);
 
 #if defined(_WINDOWS)
 
-int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
-                   LPTSTR lpstrCmd, int nShow)
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
+                   LPWSTR lpstrCmd, int nShow)
 {
-    return process(__argc, __targv);
+    return process(__argc, __wargv);
 }
 
 #else

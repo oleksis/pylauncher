@@ -149,11 +149,14 @@ class ScriptMaker:
         self.last_script = script
         return path
 
+    def save_script(self):
+            with open('last_failed.py', 'wb') as f:
+                f.write(self.last_script)
+
     def matches(self, stdout, pyinfo):
         result = stdout.startswith(pyinfo.bversion)
         if not result:
-            with open('last_failed.py', 'wb') as f:
-                f.write(self.last_script)
+            self.save_script()
             print(pyinfo.bversion)
             for s in self.last_streams:
                 print(repr(s))
@@ -170,7 +173,7 @@ class ScriptMaker:
         return stdout, stderr
 
     def get_python_for_shebang(self, shebang):
-        if '3' in shebang:
+        if 'python3' in shebang:
             result = DEFAULT_PYTHON3
         else:
             result = DEFAULT_PYTHON2
@@ -271,6 +274,7 @@ class ConfiguredScriptMaker(ScriptMaker):
 LOCAL_INI = '''[commands]
 h3 = c:\Python32\python --help
 v3 =c:\Python32\python --version
+v2a= c:\Python26\python -v
 
 [defaults]
 python=3
@@ -282,10 +286,12 @@ h2=c:\Python26\python -h
 h3 = c:\Python32\python -h
 v2= c:\Python26\python -V
 v3 =c:\Python32\python -V
+v3a = c:\Python32\python -v
+shell = cmd /c
 
 [defaults]
 python=2
-python2=2.7
+python2=2.6
 '''
 
 class ConfigurationTest(ConfiguredScriptMaker, unittest.TestCase):
@@ -293,16 +299,71 @@ class ConfigurationTest(ConfiguredScriptMaker, unittest.TestCase):
         "Test basic configuration"
         # We're specifying Python 3 in the local ini...
         write_data(self.local_ini, LOCAL_INI)
-        shebang = SHEBANGS['PY']
+        write_data(self.global_ini, GLOBAL_INI)
+        shebang = SHEBANGS['PY']    # just 'python' ...
         path = self.make_script(shebang_line=shebang)
         stdout, stderr = self.run_child(path)
         python = self.get_python_for_shebang(shebang)
         self.assertTrue(self.matches(stdout, DEFAULT_PYTHON3))
-        # Now zap the local configuration
+        # Now zap the local configuration ... should get Python 2
         write_data(self.local_ini, '')
         stdout, stderr = self.run_child(path)
         python = self.get_python_for_shebang(shebang)
         self.assertTrue(self.matches(stdout, DEFAULT_PYTHON2))
+
+    def test_customised(self):
+        "Test customised commands"
+        write_data(self.local_ini, LOCAL_INI)
+        write_data(self.global_ini, GLOBAL_INI)
+
+        # Python 3 with help
+        shebang = '#!h3\n'
+        path = self.make_script(shebang_line=shebang)
+        stdout, stderr = self.run_child(path)
+        self.assertTrue(stdout.startswith(b'usage: '))
+        # Assumes standard Python installation directory
+        self.assertIn(b'Python32', stdout)
+
+        # Python 2 with help
+        shebang = '#!h2\n'
+        path = self.make_script(shebang_line=shebang)
+        stdout, stderr = self.run_child(path)
+        self.assertTrue(stdout.startswith(b'usage: '))
+        # Assumes standard Python installation directory
+        self.assertIn(b'Python26', stdout)
+
+        # Python 3 version
+        shebang = '#!v3\n'
+        path = self.make_script(shebang_line=shebang)
+        stdout, stderr = self.run_child(path)
+        self.assertTrue(stderr.startswith(b'Python 3.2'))
+
+        # Python 2 version
+        shebang = '#!v2\n'
+        path = self.make_script(shebang_line=shebang)
+        stdout, stderr = self.run_child(path)
+        self.assertTrue(stderr.startswith(b'Python 2.6'))
+
+        # Python 3 with -v
+        shebang = '#!v3a\n'
+        path = self.make_script(shebang_line=shebang)
+        stdout, stderr = self.run_child(path)
+        self.assertTrue(stderr.startswith(b'# installing zipimport hook'))
+        # Assumes standard Python installation directory
+        self.assertIn(b'Python32', stderr)
+
+        # Python 2 with -v
+        shebang = '#!v2a\n'
+        path = self.make_script(shebang_line=shebang)
+        stdout, stderr = self.run_child(path)
+        self.assertTrue(stderr.startswith(b'# installing zipimport hook'))
+        self.assertIn(b'Python26', stderr)
+
+        # Python 2 with -V via cmd.exe /C
+        shebang = '#!shell python -V\n'
+        path = self.make_script(shebang_line=shebang)
+        stdout, stderr = self.run_child(path)
+        self.assertTrue(stderr.startswith(b'Python 2.6'))
 
 if __name__ == '__main__':
     unittest.main()

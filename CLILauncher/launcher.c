@@ -89,19 +89,24 @@ static int error(int rc, wchar_t * format, ... )
 {
     va_list va;
     wchar_t message[MSGSIZE];
+    wchar_t win_message[MSGSIZE];
+    int len;
 
-    if (rc != 0) {  /* not a Windows error */
-        va_start(va, format);
-        _vsnwprintf_s(message, MSGSIZE, _TRUNCATE, format, va);
-    }
-    else {
-        winerror(GetLastError(), message, MSGSIZE);
+    va_start(va, format);
+    len = _vsnwprintf_s(message, MSGSIZE, _TRUNCATE, format, va);
+
+    if (rc == 0) {  /* a Windows error */
+        winerror(GetLastError(), win_message, MSGSIZE);
+        if (len >= 0) {
+            _snwprintf_s(&message[len], MSGSIZE - len, _TRUNCATE, L": %s",
+                         win_message);
+        }
     }
 
 #if !defined(_WINDOWS)
     fwprintf(stderr, L"%s\n", message);
 #else
-    MessageBox(NULL, message, TEXT("Error"), MB_OK); 
+    MessageBox(NULL, message, TEXT("Python Launcher is sorry to say ..."), MB_OK); 
 #endif
     ExitProcess(rc);
 }
@@ -450,7 +455,7 @@ run_child(wchar_t * cmdline)
     si.dwFlags = STARTF_USESTDHANDLES;
     ok = CreateProcessW(NULL, cmdline, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi);
     if (!ok)
-        error(0, L"Unable to create process");
+        error(0, L"Unable to create process using '%s'", cmdline);
     AssignProcessToJobObject(job, pi.hProcess);
     CloseHandle(pi.hThread);
     WaitForSingleObject(pi.hProcess, INFINITE);

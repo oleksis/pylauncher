@@ -122,12 +122,18 @@ def locate_python(spec):
     return ret
 
 DEFAULT_PYTHON2 = locate_python("2")
-if DEFAULT_PYTHON2:
-    DEFAULT_PYTHON2.bversion = DEFAULT_PYTHON2.version.encode('ascii')
-    
+assert DEFAULT_PYTHON2, "You don't appear to have Python 2 installed"
+
 DEFAULT_PYTHON3 = locate_python("3")
-if DEFAULT_PYTHON3:
-    DEFAULT_PYTHON3.bversion = DEFAULT_PYTHON3.version.encode('ascii')
+assert DEFAULT_PYTHON3, "You don't appear to have Python 3 installed"
+
+for python in (DEFAULT_PYTHON2, DEFAULT_PYTHON3):
+    python.bversion = python.version.encode('ascii')
+    # Assuming the default installation directory name is used
+    python.dir = 'Python%s' % python.version.replace('.', '')
+    python.bdir = python.dir.encode('ascii')
+    python.output_version = b'Python ' + python.bversion
+del python
 
 class ScriptMaker:
     def setUp(self):
@@ -157,7 +163,7 @@ class ScriptMaker:
         result = stdout.startswith(pyinfo.bversion)
         if not result:
             self.save_script()
-            print(pyinfo.bversion)
+            print('Expected', pyinfo.bversion)
             for s in self.last_streams:
                 print(repr(s))
         return result
@@ -165,9 +171,10 @@ class ScriptMaker:
     def is_encoding_error(self, message):
         return b'but no encoding declared; see' in message
 
-    def run_child(self, path):
+    def run_child(self, path, env=None):
         p = subprocess.Popen([LAUNCHER, path], stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE, shell=False)
+                             stderr=subprocess.PIPE, shell=False,
+                             env=env)
         stdout, stderr = p.communicate()
         self.last_streams = stdout, stderr
         return stdout, stderr
@@ -272,27 +279,27 @@ class ConfiguredScriptMaker(ScriptMaker):
         ScriptMaker.tearDown(self)
 
 LOCAL_INI = '''[commands]
-h3 = c:\Python32\python --help
-v3 =c:\Python32\python --version
-v2a= c:\Python26\python -v
+h3 = c:\{p3.dir}\python --help
+v3 =c:\{p3.dir}\python --version
+v2a= c:\{p2.dir}\python -v
 
 [defaults]
 python=3
-python3=3.2
-'''
+python3={p3.version}
+'''.format(p2=DEFAULT_PYTHON2, p3=DEFAULT_PYTHON3)
 
 GLOBAL_INI = '''[commands]
-h2=c:\Python26\python -h
-h3 = c:\Python32\python -h
-v2= c:\Python26\python -V
-v3 =c:\Python32\python -V
-v3a = c:\Python32\python -v
+h2=c:\{p2.dir}\python -h
+h3 = c:\{p3.dir}\python -h
+v2= c:\{p2.dir}\python -V
+v3 =c:\{p3.dir}\python -V
+v3a = c:\{p3.dir}\python -v
 shell = cmd /c
 
 [defaults]
 python=2
-python2=2.6
-'''
+python2={p2.version}
+'''.format(p2=DEFAULT_PYTHON2, p3=DEFAULT_PYTHON3)
 
 class ConfigurationTest(ConfiguredScriptMaker, unittest.TestCase):
     def test_basic(self):
@@ -303,12 +310,10 @@ class ConfigurationTest(ConfiguredScriptMaker, unittest.TestCase):
         shebang = SHEBANGS['PY']    # just 'python' ...
         path = self.make_script(shebang_line=shebang)
         stdout, stderr = self.run_child(path)
-        python = self.get_python_for_shebang(shebang)
         self.assertTrue(self.matches(stdout, DEFAULT_PYTHON3))
         # Now zap the local configuration ... should get Python 2
         write_data(self.local_ini, '')
         stdout, stderr = self.run_child(path)
-        python = self.get_python_for_shebang(shebang)
         self.assertTrue(self.matches(stdout, DEFAULT_PYTHON2))
 
     def test_customised(self):
@@ -322,7 +327,7 @@ class ConfigurationTest(ConfiguredScriptMaker, unittest.TestCase):
         stdout, stderr = self.run_child(path)
         self.assertTrue(stdout.startswith(b'usage: '))
         # Assumes standard Python installation directory
-        self.assertIn(b'Python32', stdout)
+        self.assertIn(DEFAULT_PYTHON3.bdir, stdout)
 
         # Python 2 with help
         shebang = '#!h2\n'
@@ -330,19 +335,19 @@ class ConfigurationTest(ConfiguredScriptMaker, unittest.TestCase):
         stdout, stderr = self.run_child(path)
         self.assertTrue(stdout.startswith(b'usage: '))
         # Assumes standard Python installation directory
-        self.assertIn(b'Python26', stdout)
+        self.assertIn(DEFAULT_PYTHON2.bdir, stdout)
 
         # Python 3 version
         shebang = '#!v3\n'
         path = self.make_script(shebang_line=shebang)
         stdout, stderr = self.run_child(path)
-        self.assertTrue(stderr.startswith(b'Python 3.2'))
+        self.assertTrue(stderr.startswith(DEFAULT_PYTHON3.output_version))
 
         # Python 2 version
         shebang = '#!v2\n'
         path = self.make_script(shebang_line=shebang)
         stdout, stderr = self.run_child(path)
-        self.assertTrue(stderr.startswith(b'Python 2.6'))
+        self.assertTrue(stderr.startswith(DEFAULT_PYTHON2.output_version))
 
         # Python 3 with -v
         shebang = '#!v3a\n'
@@ -350,20 +355,40 @@ class ConfigurationTest(ConfiguredScriptMaker, unittest.TestCase):
         stdout, stderr = self.run_child(path)
         self.assertTrue(stderr.startswith(b'# installing zipimport hook'))
         # Assumes standard Python installation directory
-        self.assertIn(b'Python32', stderr)
+        self.assertIn(DEFAULT_PYTHON3.bdir, stderr)
 
         # Python 2 with -v
         shebang = '#!v2a\n'
         path = self.make_script(shebang_line=shebang)
         stdout, stderr = self.run_child(path)
         self.assertTrue(stderr.startswith(b'# installing zipimport hook'))
-        self.assertIn(b'Python26', stderr)
+        self.assertIn(DEFAULT_PYTHON2.bdir, stderr)
 
         # Python 2 with -V via cmd.exe /C
         shebang = '#!shell python -V\n'
         path = self.make_script(shebang_line=shebang)
         stdout, stderr = self.run_child(path)
-        self.assertTrue(stderr.startswith(b'Python 2.6'))
+        self.assertTrue(stderr.startswith(DEFAULT_PYTHON2.output_version))
+
+    def test_environment(self):
+        "Test configuration via the environment"
+        "Test basic configuration"
+        # We're specifying Python 3 in the local ini...
+        write_data(self.local_ini, LOCAL_INI)
+        write_data(self.global_ini, GLOBAL_INI)
+        shebang = SHEBANGS['PY']    # just 'python' ...
+        path = self.make_script(shebang_line=shebang)
+        stdout, stderr = self.run_child(path)
+        self.assertTrue(self.matches(stdout, DEFAULT_PYTHON3))
+        # Now, override in the environment
+        env = os.environ.copy()
+        env['PY_PYTHON'] = '2'
+        stdout, stderr = self.run_child(path, env=env)
+        self.assertTrue(self.matches(stdout, DEFAULT_PYTHON2))
+        # And again without the environment change
+        stdout, stderr = self.run_child(path)
+        self.assertTrue(self.matches(stdout, DEFAULT_PYTHON3))
+
 
 if __name__ == '__main__':
     unittest.main()

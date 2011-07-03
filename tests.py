@@ -369,6 +369,11 @@ class ConfigurationTest(ConfiguredScriptMaker, unittest.TestCase):
         path = self.make_script(shebang_line=shebang)
         stdout, stderr = self.run_child(path)
         self.assertTrue(stderr.startswith(DEFAULT_PYTHON2.output_version))
+        shebang = '#!shell python -v\n'
+        path = self.make_script(shebang_line=shebang)
+        stdout, stderr = self.run_child(path)
+        self.assertTrue(stdout.startswith(DEFAULT_PYTHON2.bversion))
+        self.assertTrue(stderr.startswith(b'# installing zipimport hook'))
 
     def test_environment(self):
         "Test configuration via the environment"

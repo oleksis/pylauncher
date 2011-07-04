@@ -2,6 +2,7 @@ import sys
 if sys.version_info[0] < 3:
     raise ImportError("These tests require Python 3 to run.")
 
+import ctypes
 import os
 import shutil
 import subprocess
@@ -50,45 +51,76 @@ class VirtualPath: # think a C struct...
         self.bits = bits
         self.executable = executable
 
+def is_64_bit_os():
+    i = ctypes.c_int()
+    kernel32 = ctypes.windll.kernel32
+    process = kernel32.GetCurrentProcess()
+    kernel32.IsWow64Process(process, ctypes.byref(i))
+    return i.value
+
+def locate_pythons_for_key(root, flags, infos):
+    executable = "pythonw.exe" if IS_W else "python.exe"
+    python_path = r"SOFTWARE\Python\PythonCore"
+    try:
+        core_root = winreg.OpenKeyEx(root, python_path, 0, flags)
+    except WindowsError:
+        return
+    try:
+        i = 0
+        while True:
+            try:
+                verspec = winreg.EnumKey(core_root, i)
+            except WindowsError:
+                break
+            try:
+                ip_path = python_path + "\\" + verspec + "\\" + "InstallPath"
+                key_installed_path = winreg.OpenKeyEx(root, ip_path, 0, flags)
+                try:
+                    install_path, typ = winreg.QueryValueEx(key_installed_path,
+                                                            None)
+                finally:
+                    winreg.CloseKey(key_installed_path)
+                if typ==winreg.REG_SZ:
+                    for check in ["", "pcbuild", "pcbuild/amd64"]:
+                        maybe = os.path.join(install_path, check, executable)
+                        if os.path.isfile(maybe):
+                            if " " in maybe:
+                                maybe = '"' + maybe + '"'
+                            infos.append(VirtualPath(verspec, 32, maybe))
+                            #debug("found version %s at '%s'" % (verspec, maybe))
+                            break
+            except WindowsError:
+                pass
+            i += 1
+    finally:
+        winreg.CloseKey(core_root)
+
 # Locate all installed Python versions, reverse-sorted by their version
 # number - the sorting allows a simplistic linear scan to find the higest
 # matching version number.
 def locate_all_pythons():
     infos = []
-    executable = "pythonw.exe" if IS_W else "python.exe"
-    python_path = r"SOFTWARE\Python\PythonCore"
-    for root in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
-        core_root = winreg.OpenKey(root, python_path)
-        try:
-            i = 0
-            while True:
-                try:
-                    verspec = winreg.EnumKey(core_root, i)
-                except WindowsError:
-                    break
-                try:
-                    ip_path = python_path + "\\" + verspec + "\\" + "InstallPath"
-                    key_installed_path = winreg.OpenKey(root, ip_path)
-                    try:
-                        install_path, typ = winreg.QueryValueEx(key_installed_path,
-                                                                None)
-                    finally:
-                        winreg.CloseKey(key_installed_path)
-                    if typ==winreg.REG_SZ:
-                        for check in ["", "pcbuild", "pcbuild/amd64"]:
-                            maybe = os.path.join(install_path, check, executable)
-                            if os.path.isfile(maybe):
-                                if " " in maybe:
-                                    maybe = '"' + maybe + '"'
-                                infos.append(VirtualPath(verspec, 32, maybe))
-                                #debug("found version %s at '%s'" % (verspec, maybe))
-                                break
-                except WindowsError:
-                    pass
-                i += 1
-        finally:
-            winreg.CloseKey(core_root)
-    return sorted(infos, reverse=True, key=lambda info: info.version)
+    
+    if not is_64_bit_os():
+        locate_pythons_for_key(winreg.HKEY_CURRENT_USER, winreg.KEY_READ,
+                               infos)
+        locate_pythons_for_key(winreg.HKEY_LOCAL_MACHINE, winreg.KEY_READ,
+                               infos)
+    else:
+        locate_pythons_for_key(winreg.HKEY_CURRENT_USER,
+                               winreg.KEY_READ | winreg.KEY_WOW64_64KEY,
+                               infos)
+        locate_pythons_for_key(winreg.HKEY_LOCAL_MACHINE,
+                               winreg.KEY_READ | winreg.KEY_WOW64_64KEY,
+                               infos)
+        locate_pythons_for_key(winreg.HKEY_CURRENT_USER,
+                               winreg.KEY_READ | winreg.KEY_WOW64_32KEY,
+                               infos)
+        locate_pythons_for_key(winreg.HKEY_LOCAL_MACHINE,
+                               winreg.KEY_READ | winreg.KEY_WOW64_32KEY,
+                               infos)
+
+    return sorted(infos, reverse=True, key=lambda info: (info.version, -info.bits))
 
 
 ALL_PYTHONS = locate_all_pythons()
@@ -387,11 +419,11 @@ class ConfigurationTest(ConfiguredScriptMaker, unittest.TestCase):
         self.assertIn(DEFAULT_PYTHON2.bdir, stderr)
 
         # Python 2 with -V via cmd.exe /C
-        shebang = '#!shell python -V\n'
+        shebang = '#!shell %s -V\n' % DEFAULT_PYTHON2.executable
         path = self.make_script(shebang_line=shebang)
         stdout, stderr = self.run_child(path)
         self.assertTrue(stderr.startswith(DEFAULT_PYTHON2.output_version))
-        shebang = '#!shell python -v\n'
+        shebang = '#!shell %s -v\n' % DEFAULT_PYTHON2.executable
         path = self.make_script(shebang_line=shebang)
         stdout, stderr = self.run_child(path)
         self.assertTrue(stdout.startswith(DEFAULT_PYTHON2.bversion))

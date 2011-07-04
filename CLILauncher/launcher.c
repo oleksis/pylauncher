@@ -284,8 +284,8 @@ locate_all_pythons()
 #if defined(_M_X64)
     locate_pythons_for_key(HKEY_CURRENT_USER, KEY_READ | KEY_WOW64_64KEY);
     locate_pythons_for_key(HKEY_LOCAL_MACHINE, KEY_READ | KEY_WOW64_64KEY);
-    locate_pythons_for_key(HKEY_CURRENT_USER, KEY_READ | KEY_WOW32_64KEY);
-    locate_pythons_for_key(HKEY_LOCAL_MACHINE, KEY_READ | KEY_WOW32_64KEY);
+    locate_pythons_for_key(HKEY_CURRENT_USER, KEY_READ | KEY_WOW64_32KEY);
+    locate_pythons_for_key(HKEY_LOCAL_MACHINE, KEY_READ | KEY_WOW64_32KEY);
 #else
     locate_pythons_for_key(HKEY_CURRENT_USER, KEY_READ);
     locate_pythons_for_key(HKEY_LOCAL_MACHINE, KEY_READ);

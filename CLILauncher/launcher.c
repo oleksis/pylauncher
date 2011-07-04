@@ -774,6 +774,44 @@ validate_version(wchar_t * p)
     return result;
 }
 
+typedef struct {
+    unsigned short min;
+    unsigned short max;
+    wchar_t version[MAX_VERSION_SIZE];
+} PYC_MAGIC;
+
+static PYC_MAGIC magic_values[] = {
+    { 0xc687, 0xc687, L"2.0" },
+    { 0xeb2a, 0xeb2a, L"2.1" },
+    { 0xed2d, 0xed2d, L"2.2" },
+    { 0xf23b, 0xf245, L"2.3" },
+    { 0xf259, 0xf26d, L"2.4" },
+    { 0xf277, 0xf2b3, L"2.5" },
+    { 0xf2c7, 0xf2d1, L"2.6" },
+    { 0xf2db, 0xf303, L"2.7" },
+    { 0x0bb8, 0x0c3b, L"3.0" },
+    { 0x0c45, 0x0c4f, L"3.1" },
+    { 0x0c58, 0x0c6c, L"3.2" },
+    { 0x0c76, 0x0c76, L"3.3" },
+    { 0 }
+};
+
+static INSTALLED_PYTHON *
+find_by_magic(unsigned short magic)
+{
+    INSTALLED_PYTHON * result = NULL;
+    PYC_MAGIC * mp;
+
+    for (mp = magic_values; mp->min; mp++) {
+        if ((magic >= mp->min) && (magic <= mp->max)) {
+            result = locate_python(mp->version);
+            if (result != NULL)
+                break;
+        }
+    }
+    return result;
+}
+
 static void
 maybe_handle_shebang(wchar_t ** argv, wchar_t * cmdline)
 {
@@ -786,7 +824,7 @@ maybe_handle_shebang(wchar_t ** argv, wchar_t * cmdline)
  */
     FILE * fp;
     errno_t rc = _wfopen_s(&fp, *argv, L"rb");
-    char buffer[BUFSIZE];
+    unsigned char buffer[BUFSIZE];
     wchar_t shebang_line[BUFSIZE + 1];
     size_t read;
     char *p;
@@ -805,6 +843,11 @@ maybe_handle_shebang(wchar_t ** argv, wchar_t * cmdline)
         debug(L"maybe_handle_shebang: read %d bytes\n", read);
         fclose(fp);
 
+        if ((read >= 4) && (buffer[3] == '\n') && (buffer[2] == '\r')) {
+            ip = find_by_magic((buffer[1] << 8 | buffer[0]) & 0xFFFF);
+            if (ip != NULL)
+                invoke_child(ip->executable, NULL, cmdline);
+        }
         /* Look for BOM */
         bom = find_BOM(buffer);
         if (bom == NULL) {

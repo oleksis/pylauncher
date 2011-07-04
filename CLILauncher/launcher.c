@@ -743,6 +743,37 @@ find_terminator(char * buffer, int len, BOM *bom)
     return result;
 }
 
+static BOOL
+validate_version(wchar_t * p)
+{
+    BOOL result = TRUE;
+
+    if (!isdigit(*p))               /* expect major version */
+        result = FALSE;
+    else if (*++p) {                /* more to do */
+        if (*p != L'.')             /* major/minor separator */
+            result = FALSE;
+        else {
+            ++p;
+            if (!isdigit(*p))       /* expect minor version */
+                result = FALSE;
+            else {
+                ++p;
+                if (*p) {           /* more to do */
+                    if (*p != L'-')
+                        result = FALSE;
+                    else {
+                        ++p;
+                        if ((*p != '3') && (*++p != '2') && !*++p)
+                            result = FALSE;
+                    }
+                }
+            }
+        }
+    }
+    return result;
+}
+
 static void
 maybe_handle_shebang(wchar_t ** argv, wchar_t * cmdline)
 {
@@ -883,10 +914,15 @@ of bytes: %d", header_len);
                         if (wcsncmp(command, L"python", 6))
                             error(RC_BAD_VIRTUAL_PATH, L"unknown virtual \
 path '%s'", command);
-                        ip = locate_python(command + 6);
+                        command += 6;   /* skip past "python" */
+                        if (*command && !validate_version(command))
+                            error(RC_BAD_VIRTUAL_PATH, L"invalid version \
+specification: '%s'", command);
+                        /* TODO could call validate_version(command) */
+                        ip = locate_python(command);
                         if (ip == NULL) {
                             error(RC_NO_PYTHON, L"Requested Python version \
-(%s) is not installed", command + 6);
+(%s) is not installed", command);
                         }
                         else {
                             invoke_child(ip->executable, suffix, cmdline);
@@ -918,37 +954,6 @@ skip_me(wchar_t * cmdline)
     else {
         ++result; /* skip past space or closing quote */
         result = skip_whitespace(result);
-    }
-    return result;
-}
-
-static BOOL
-validate_version(wchar_t * p)
-{
-    BOOL result = TRUE;
-
-    if (!isdigit(*p))               /* expect major version */
-        result = FALSE;
-    else if (*++p) {                /* more to do */
-        if (*p != L'.')             /* major/minor separator */
-            result = FALSE;
-        else {
-            ++p;
-            if (!isdigit(*p))       /* expect minor version */
-                result = FALSE;
-            else {
-                ++p;
-                if (*p) {           /* more to do */
-                    if (*p != L'-')
-                        result = FALSE;
-                    else {
-                        ++p;
-                        if ((*p != '3') && (*++p != '2') && !*++p)
-                            result = FALSE;
-                    }
-                }
-            }
-        }
     }
     return result;
 }

@@ -127,13 +127,33 @@ assert DEFAULT_PYTHON2, "You don't appear to have Python 2 installed"
 DEFAULT_PYTHON3 = locate_python("3")
 assert DEFAULT_PYTHON3, "You don't appear to have Python 3 installed"
 
-for python in (DEFAULT_PYTHON2, DEFAULT_PYTHON3):
-    python.bversion = python.version.encode('ascii')
-    # Assuming the default installation directory name is used
-    python.dir = 'Python%s' % python.version.replace('.', '')
-    python.bdir = python.dir.encode('ascii')
-    python.output_version = b'Python ' + python.bversion
-del python
+def update_for_installed_pythons(*pythons):
+    for python in pythons:
+        python.bversion = python.version.encode('ascii')
+        # Assuming the default installation directory name is used
+        python.dir = 'Python%s' % python.version.replace('.', '')
+        python.bdir = python.dir.encode('ascii')
+        python.output_version = b'Python ' + python.bversion
+        
+        # Add additional shebangs for the versions we know are present
+        major = python.version[0]
+        upd_templates = {
+            'ENV_PY%s_MIN': '#!/usr/bin/env python%s\n',
+            'ENV_PY%s_MIN_BITS': '#!/usr/bin/env python%s-32\n',
+            'BIN_PY%s_MIN': '#!/usr/bin/python%s\n',
+            'BIN_PY%s_MIN_BITS': '#!/usr/bin/python%s-32\n',
+            'LBIN_PY%s_MIN': '#!/usr/local/bin/python%s\n',
+            'LBIN_PY%s_MIN_BITS': '#!/usr/local/bin/python%s-32\n',
+            'PY%s_MIN': '#!/usr/local/bin/python%s\n',
+            'PY%s_MIN_BITS': '#!/usr/local/bin/python%s-32\n',
+        }
+        for k, v in upd_templates.items():
+            key = k % major
+            value = v % python.version
+            assert key not in SHEBANGS  # sanity check
+            SHEBANGS[key] = value
+
+update_for_installed_pythons(DEFAULT_PYTHON2, DEFAULT_PYTHON3)
 
 class ScriptMaker:
     def setUp(self):
@@ -349,11 +369,13 @@ class ConfigurationTest(ConfiguredScriptMaker, unittest.TestCase):
         stdout, stderr = self.run_child(path)
         self.assertTrue(stderr.startswith(DEFAULT_PYTHON2.output_version))
 
+        VERBOSE_START = b'# installing zipimport hook'
+
         # Python 3 with -v
         shebang = '#!v3a\n'
         path = self.make_script(shebang_line=shebang)
         stdout, stderr = self.run_child(path)
-        self.assertTrue(stderr.startswith(b'# installing zipimport hook'))
+        self.assertTrue(stderr.startswith(VERBOSE_START))
         # Assumes standard Python installation directory
         self.assertIn(DEFAULT_PYTHON3.bdir, stderr)
 
@@ -361,7 +383,7 @@ class ConfigurationTest(ConfiguredScriptMaker, unittest.TestCase):
         shebang = '#!v2a\n'
         path = self.make_script(shebang_line=shebang)
         stdout, stderr = self.run_child(path)
-        self.assertTrue(stderr.startswith(b'# installing zipimport hook'))
+        self.assertTrue(stderr.startswith(VERBOSE_START))
         self.assertIn(DEFAULT_PYTHON2.bdir, stderr)
 
         # Python 2 with -V via cmd.exe /C
@@ -373,7 +395,7 @@ class ConfigurationTest(ConfiguredScriptMaker, unittest.TestCase):
         path = self.make_script(shebang_line=shebang)
         stdout, stderr = self.run_child(path)
         self.assertTrue(stdout.startswith(DEFAULT_PYTHON2.bversion))
-        self.assertTrue(stderr.startswith(b'# installing zipimport hook'))
+        self.assertTrue(stderr.startswith(VERBOSE_START))
 
     def test_environment(self):
         "Test configuration via the environment"

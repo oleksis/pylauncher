@@ -301,12 +301,17 @@ find_python_by_version(wchar_t const * wanted_ver)
     INSTALLED_PYTHON * ip = installed_pythons;
     size_t i, n;
     size_t wlen = wcslen(wanted_ver);
+    int bits = 0;
 
+    if (wcsstr(wanted_ver, L"-32"))
+        bits = 32;
     for (i = 0; i < num_installed_pythons; i++, ip++) {
         n = wcslen(ip->version);
         if (n > wlen)
             n = wlen;
-        if (wcsncmp(ip->version, wanted_ver, n) == 0) {
+        if ((wcsncmp(ip->version, wanted_ver, n) == 0) &&
+            /* bits == 0 => don't care */
+            ((bits == 0) || (ip->bits == bits))) {
             result = ip;
             break;
         }

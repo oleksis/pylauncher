@@ -358,6 +358,10 @@
 				RelativePath=".\CLILauncher.rc"
 				>
 			</File>
+			<File
+				RelativePath="..\launcher.ico"
+				>
+			</File>
 		</Filter>
 		<File
 			RelativePath=".\copy_config.cmd"

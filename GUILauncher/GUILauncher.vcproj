@@ -352,6 +352,10 @@
 				RelativePath=".\GUILauncher.rc"
 				>
 			</File>
+			<File
+				RelativePath="..\launcher.ico"
+				>
+			</File>
 		</Filter>
 	</Files>
 	<Globals>

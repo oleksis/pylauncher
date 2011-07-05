@@ -2,9 +2,13 @@
 <?if $(var.Platform) = x64 ?>
   <?define PkgCode = '76EFA3F5-D7B4-4D2B-94E0-25B5B6C820ED' ?>
   <?define DirName = 'ProgramFiles64Folder' ?>
+  <?define BinDir = 'x64\Release' ?>
+  <?define CompGuid = '46BCEFDD-EAFE-49A8-9FCB-27371AAC7ABD' ?>
 <?else ?>
   <?define PkgCode = '9CA91B9B-69A1-494B-A200-44AA4D54BC92' ?>
   <?define DirName = 'ProgramFilesFolder' ?>
+  <?define BinDir = 'Release' ?>
+  <?define CompGuid = '13D8FC31-04E9-4AC9-AE0B-E28F61DE99B9' ?>
 <?endif ?>
 <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
     <Module Id='LauncherModule' Language='1033' Version='$(var.Version)'>
@@ -15,10 +19,10 @@
             <Directory Id='$(var.DirName)' Name='PFiles'>
                 <Directory Id='ProgDir' Name='Python Launcher'>
                     <?if $(var.Platform) = x64 ?>
-                        <Component Id='launchmod' Guid='46BCEFDD-EAFE-49A8-9FCB-27371AAC7ABD'>
-                            <File Id='py' Name='py.exe' Source='x64\Release\py.exe' />
-                            <File Id='pyw' Name='pyw.exe' Source='x64\Release\pyw.exe' />
-                            <File Id='ini' Name='py.ini' Source='x64\Release\py.ini' />
+                        <Component Id='launchmod' Guid='$(var.CompGuid)'>
+                            <File Id='py' Name='py.exe' Source='$(var.BinDir)\py.exe' />
+                            <File Id='pyw' Name='pyw.exe' Source='$(var.BinDir)\pyw.exe' />
+                            <File Id='ini' Name='py.ini' Source='$(var.BinDir)\py.ini' />
                             <File Id='pycicon' Name='pyc.ico' Source='pyc.ico' />
                             <File Id='pyicon' Name='py.ico' Source='py.ico' />
                             <ProgId Id='Python.File' Description='Python File'
@@ -49,10 +53,10 @@
                             </ProgId>
                         </Component>
                     <?else ?>
-                        <Component Id='launchmod' Guid='13D8FC31-04E9-4AC9-AE0B-E28F61DE99B9'>
-                            <File Id='py' Name='py.exe' Source='Release\py.exe' />
-                            <File Id='pyw' Name='pyw.exe' Source='Release\pyw.exe' />
-                            <File Id='ini' Name='py.ini' Source='Release\py.ini' />
+                        <Component Id='launchmod' Guid='$(var.CompGuid)'>
+                            <File Id='py' Name='py.exe' Source='$(var.BinDir)\py.exe' />
+                            <File Id='pyw' Name='pyw.exe' Source='$(var.BinDir)\pyw.exe' />
+                            <File Id='ini' Name='py.ini' Source='$(var.BinDir)\py.ini' />
                             <File Id='pycicon' Name='pyc.ico' Source='pyc.ico' />
                             <File Id='pyicon' Name='py.ico' Source='py.ico' />
                             <ProgId Id='Python.File' Description='Python File'

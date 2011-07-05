@@ -171,7 +171,7 @@ static void locate_pythons_for_key(HKEY root, REGSAM flags)
     wchar_t ** checkp;
 
     if (status != ERROR_SUCCESS)
-        debug(L"locate_pythons_for_key: unable to open PythonCore key");
+        debug(L"locate_pythons_for_key: unable to open PythonCore key\n");
     else {
         ip = &installed_pythons[num_installed_pythons];
         for (i = 0; num_installed_pythons < MAX_INSTALLED_PYTHONS; i++) {
@@ -414,11 +414,11 @@ safe_duplicate_handle(HANDLE in, HANDLE * pout)
     if (!ok) {
         rc = GetLastError();
         if (rc == ERROR_INVALID_HANDLE) {
-            debug(L"DuplicateHandle returned ERROR_INVALID_HANDLE");
+            debug(L"DuplicateHandle returned ERROR_INVALID_HANDLE\n");
             ok = TRUE;
         }
         else {
-            debug(L"DuplicateHandle returned %d", rc);
+            debug(L"DuplicateHandle returned %d\n", rc);
         }
     }
     return ok;
@@ -467,7 +467,7 @@ run_child(wchar_t * cmdline)
     ok = GetExitCodeProcess(pi.hProcess, &rc);
     if (!ok)
         error(0, L"Failed to get exit code of process");
-    debug(L"child process exit code: %d", rc);
+    debug(L"child process exit code: %d\n", rc);
     ExitProcess(rc);
 }
 
@@ -866,7 +866,7 @@ maybe_handle_shebang(wchar_t ** argv, wchar_t * cmdline)
          * we assume it's not a shebang file.
          */
         if (p == NULL) {
-            debug(L"maybe_handle_shebang: No line terminator found");
+            debug(L"maybe_handle_shebang: No line terminator found\n");
         }
         else {
             /*
@@ -887,7 +887,7 @@ maybe_handle_shebang(wchar_t ** argv, wchar_t * cmdline)
             case CP_UTF16BE:
                 if (header_len % 2 != 0) {
                     debug(L"maybe_handle_shebang: UTF-16BE, but an odd number \
-of bytes: %d", header_len);
+of bytes: %d\n", header_len);
                     nchars = 0;
                 }
                 else {
@@ -900,7 +900,7 @@ of bytes: %d", header_len);
                 break;
             case CP_UTF16LE:
                 if ((header_len % 2) != 0) {
-                    debug(L"UTF-16LE, but an odd number of bytes: %d",
+                    debug(L"UTF-16LE, but an odd number of bytes: %d\n",
                           header_len);
                     nchars = 0;
                 }
@@ -912,7 +912,8 @@ of bytes: %d", header_len);
                 break;
             case CP_UTF32BE:
                 if (header_len % 4 != 0) {
-                    debug(L"UTF-32BE, but not divisible by 4: %d", header_len);
+                    debug(L"UTF-32BE, but not divisible by 4: %d\n",
+                          header_len);
                     nchars = 0;
                 }
                 else {
@@ -926,7 +927,8 @@ of bytes: %d", header_len);
                 break;
             case CP_UTF32LE:
                 if (header_len % 4 != 0) {
-                    debug(L"UTF-32LE, but not divisible by 4: %d", header_len);
+                    debug(L"UTF-32LE, but not divisible by 4: %d\n",
+                          header_len);
                     nchars = 0;
                 }
                 else {

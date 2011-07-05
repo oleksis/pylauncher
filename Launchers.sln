@@ -5,6 +5,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CLILauncher", "CLILauncher\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GUILauncher", "GUILauncher\GUILauncher.vcproj", "{AA810970-1628-40C2-8AC4-27178590D91A}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SetupSupport", "SetupSupport\SetupSupport.vcproj", "{4E3C04DF-0A06-47BA-8E28-C8975DF88F26}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -29,6 +31,13 @@ Global
 		{AA810970-1628-40C2-8AC4-27178590D91A}.Release|Win32.Build.0 = Release|Win32
 		{AA810970-1628-40C2-8AC4-27178590D91A}.Release|x64.ActiveCfg = Release|x64
 		{AA810970-1628-40C2-8AC4-27178590D91A}.Release|x64.Build.0 = Release|x64
+		{4E3C04DF-0A06-47BA-8E28-C8975DF88F26}.Debug|Win32.ActiveCfg = Debug|Win32
+		{4E3C04DF-0A06-47BA-8E28-C8975DF88F26}.Debug|Win32.Build.0 = Debug|Win32
+		{4E3C04DF-0A06-47BA-8E28-C8975DF88F26}.Debug|x64.ActiveCfg = Debug|Win32
+		{4E3C04DF-0A06-47BA-8E28-C8975DF88F26}.Release|Win32.ActiveCfg = Release|Win32
+		{4E3C04DF-0A06-47BA-8E28-C8975DF88F26}.Release|Win32.Build.0 = Release|Win32
+		{4E3C04DF-0A06-47BA-8E28-C8975DF88F26}.Release|x64.ActiveCfg = Release|x64
+		{4E3C04DF-0A06-47BA-8E28-C8975DF88F26}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

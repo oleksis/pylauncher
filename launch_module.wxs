@@ -11,84 +11,45 @@
   <?define CompGuid = '13D8FC31-04E9-4AC9-AE0B-E28F61DE99B9' ?>
 <?endif ?>
 <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
-    <Module Id='LauncherModule' Language='1033' Version='$(var.Version)'>
-        <Package Id='$(var.PkgCode)' Description='Merge Module for Python Launcher'
-                 Comments='This module can be merged into Python or a standalone installer'
-                 Manufacturer='$(var.Manufacturer)' InstallerVersion='200' Platform='$(var.Platform)'/>
-        <Directory Id='TARGETDIR' Name='SourceDir'>
-            <Directory Id='$(var.DirName)' Name='PFiles'>
-                <Directory Id='ProgDir' Name='Python Launcher'>
-                    <?if $(var.Platform) = x64 ?>
-                        <Component Id='launchmod' Guid='$(var.CompGuid)'>
-                            <File Id='py' Name='py.exe' Source='$(var.BinDir)\py.exe' />
-                            <File Id='pyw' Name='pyw.exe' Source='$(var.BinDir)\pyw.exe' />
-                            <File Id='ini' Name='py.ini' Source='$(var.BinDir)\py.ini' />
-                            <File Id='pycicon' Name='pyc.ico' Source='pyc.ico' />
-                            <File Id='pyicon' Name='py.ico' Source='py.ico' />
-                            <ProgId Id='Python.File' Description='Python File'
-                                    Icon='pyicon'>
-                                <Extension Id='py'>
-                                    <Verb Id='open' Command='Open' TargetFile='py'
-                                          Argument='"%1" %*'/>
-                                </Extension>
-                            </ProgId>
-                            <ProgId Id='Python.NoConFile' Description='Python File (no console)'
-                                    Icon='pyicon'>
-                                <Extension Id='pyw'>
-                                    <Verb Id='open' Command='Open' TargetFile='pyw'
-                                          Argument='"%1" %*'/>
-                                </Extension>
-                            </ProgId>
-                            <ProgId Id='Python.CompiledFile' Description='Compiled Python File'
-                                    Icon='pycicon'>
-                                <Extension Id='pyc'>
-                                    <Verb Id='open' Command='Open' TargetFile='py'
-                                          Argument='"%1" %*'/>
-                                </Extension>
-                                <Extension Id='pyo'>
-                                    <!-- No Verb needed here, as it's associated with ProgId
-                                         and not the extension, and the same launcher
-                                         is used. -->
-                                </Extension>
-                            </ProgId>
-                        </Component>
-                    <?else ?>
-                        <Component Id='launchmod' Guid='$(var.CompGuid)'>
-                            <File Id='py' Name='py.exe' Source='$(var.BinDir)\py.exe' />
-                            <File Id='pyw' Name='pyw.exe' Source='$(var.BinDir)\pyw.exe' />
-                            <File Id='ini' Name='py.ini' Source='$(var.BinDir)\py.ini' />
-                            <File Id='pycicon' Name='pyc.ico' Source='pyc.ico' />
-                            <File Id='pyicon' Name='py.ico' Source='py.ico' />
-                            <ProgId Id='Python.File' Description='Python File'
-                                    Icon='pyicon'>
-                                <Extension Id='py'>
-                                    <Verb Id='open' Command='Open' TargetFile='py'
-                                          Argument='"%1" %*'/>
-                                </Extension>
-                            </ProgId>
-                            <ProgId Id='Python.NoConFile' Description='Python File (no console)'
-                                    Icon='pyicon'>
-                                <Extension Id='pyw'>
-                                    <Verb Id='open' Command='Open' TargetFile='pyw'
-                                          Argument='"%1" %*'/>
-                                </Extension>
-                            </ProgId>
-                            <ProgId Id='Python.CompiledFile' Description='Compiled Python File'
-                                    Icon='pycicon'>
-                                <Extension Id='pyc'>
-                                    <Verb Id='open' Command='Open' TargetFile='py'
-                                          Argument='"%1" %*'/>
-                                </Extension>
-                                <Extension Id='pyo'>
-                                    <!-- No Verb needed here, as it's associated with ProgId
-                                         and not the extension, and the same launcher
-                                         is used. -->
-                                </Extension>
-                            </ProgId>
-                        </Component>
-                    <?endif ?>
-                </Directory>
-            </Directory>
+  <Module Id='LauncherModule' Language='1033' Version='$(var.Version)'>
+    <Package Id='$(var.PkgCode)' Description='Merge Module for Python Launcher'
+             Comments='This module can be merged into Python or a standalone installer'
+             Manufacturer='$(var.Manufacturer)' InstallerVersion='200' Platform='$(var.Platform)'/>
+    <Directory Id='TARGETDIR' Name='SourceDir'>
+      <Directory Id='$(var.DirName)' Name='PFiles'>
+        <Directory Id='ProgDir' Name='Python Launcher'>
+          <Component Id='launchmod' Guid='$(var.CompGuid)'>
+            <File Id='py' Name='py.exe' Source='$(var.BinDir)\py.exe' />
+            <File Id='pyw' Name='pyw.exe' Source='$(var.BinDir)\pyw.exe' />
+            <File Id='ini' Name='py.ini' Source='$(var.BinDir)\py.ini' />
+            <File Id='pycicon' Name='pyc.ico' Source='pyc.ico' />
+            <File Id='pyicon' Name='py.ico' Source='py.ico' />
+            <ProgId Id='Python.File' Description='Python File'
+                    Icon='pyicon'>
+              <Extension Id='py'>
+                <Verb Id='open' Command='Open' TargetFile='py' Argument='"%1" %*'/>
+              </Extension>
+            </ProgId>
+            <ProgId Id='Python.NoConFile' Description='Python File (no console)'
+                    Icon='pyicon'>
+              <Extension Id='pyw'>
+                <Verb Id='open' Command='Open' TargetFile='pyw' Argument='"%1" %*'/>
+              </Extension>
+            </ProgId>
+            <ProgId Id='Python.CompiledFile' Description='Compiled Python File'
+                    Icon='pycicon'>
+              <Extension Id='pyc'>
+                <Verb Id='open' Command='Open' TargetFile='py' Argument='"%1" %*'/>
+              </Extension>
+              <Extension Id='pyo'>
+                <!-- No Verb needed here, as it's associated with ProgId
+                     and not the extension, and the same launcher
+                     is used. -->
+              </Extension>
+            </ProgId>
+          </Component>
         </Directory>
-    </Module>
+      </Directory>
+    </Directory>
+  </Module>
 </Wix>

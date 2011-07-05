@@ -1045,6 +1045,17 @@ process(int argc, wchar_t ** argv)
     if ((wp != NULL) && (*wp != L'\0'))
         log_fp = stderr;
 
+#if defined(_M_X64)
+    debug(L"launcher build: 64bit\n");
+#else
+    debug(L"launcher build: 32bit\n");
+#endif
+#if defined(_WINDOWS)
+    debug(L"launcher executable: Windows\n");
+#else
+    debug(L"launcher executable: Console\n");
+#endif
+
     hr = SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL, 0, appdata_ini_path);
     if (hr != S_OK) {
         debug(L"SHGetFolderPath failed: %X\n", hr);

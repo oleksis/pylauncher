@@ -1,3 +1,4 @@
+#!python3
 import sys
 if sys.version_info[0] < 3:
     raise ImportError("These tests require Python 3 to run.")

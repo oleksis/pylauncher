@@ -1,0 +1,33 @@
+<?xml version='1.0'?>
+<?if $(var.Platform) = x64 ?>
+  <?define ProdCode = '1CB6C42B-5887-47CF-AF21-988256F0455B' ?>
+  <?define ProdName = 'Python Launcher (64-bit)' ?>
+  <?define MSMName = 'launch_module.amd64.msm' ?>
+<?else ?>
+  <?define ProdCode = '298B5D62-1287-427F-B8D9-B44D605F8F6B' ?>
+  <?define ProdName = 'Python Launcher' ?>
+  <?define MSMName = 'launch_module.msm' ?>
+<?endif ?>
+
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+   <Product Id='$(var.ProdCode)' Name='$(var.ProdName)' Language='1033'
+             Version='$(var.Version)' Manufacturer='$(var.Manufacturer)'
+             UpgradeCode='36B0A82E-0B4E-47CD-895B-FD4EC726B3AC'>
+      <Package Description='Python Launcher facilitates running Python files on Windows.'
+               Comments='This is a standalone version of the Python Launcher'
+               Manufacturer='Vinay Sajip' InstallerVersion='200' Compressed='yes'
+               Platform='$(var.Platform)' />
+ 
+      <Media Id='1' Cabinet='launcher.cab' EmbedCab='yes' />
+ 
+      <Directory Id='TARGETDIR' Name='SourceDir'>
+         <Merge Id='launcher_mod' Language='1033' SourceFile='$(var.MSMName)' DiskId='1' />
+      </Directory>
+ 
+      <Feature Id='launcher' Title='$(var.ProdName)' Level='1'>
+         <MergeRef Id='launcher_mod' />
+      </Feature>
+      <Icon Id="arpicon" SourceFile="launcher.ico"/>
+      <Property Id="ARPPRODUCTICON" Value="arpicon" />
+   </Product>
+</Wix>

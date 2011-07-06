@@ -158,6 +158,22 @@ static wchar_t * location_checks[] = {
     NULL
 };
 
+static INSTALLED_PYTHON *
+find_existing_python(wchar_t * path)
+{
+    INSTALLED_PYTHON * result = NULL;
+    size_t i;
+    INSTALLED_PYTHON * ip;
+
+    for (i = 0, ip = installed_pythons; i < num_installed_pythons; i++, ip++) {
+        if (_wcsicmp(path, ip->executable) == 0) {
+            result = ip;
+            break;
+        }
+    }
+    return result;
+}
+
 static void
 locate_pythons_for_key(HKEY root, REGSAM flags)
 {
@@ -223,10 +239,16 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
 attributes: %X\n",
                                   ip->executable, attrs);
                         }
+                        else if (find_existing_python(ip->executable)) {
+                            debug(L"locate_pythons_for_key: %s: already \
+found: %s\n", ip->executable);
+                        }
                         else {
                             /* check the executable type. */
                             ok = GetBinaryTypeW(ip->executable, &attrs);
                             if (!ok) {
+                                debug(L"Failure getting binary type: %s\n",
+                                      ip->executable);
                             }
                             else {
                                 if (attrs == SCS_64BIT_BINARY)

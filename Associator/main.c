@@ -65,7 +65,7 @@ find_existing_python(wchar_t * path)
     INSTALLED_PYTHON * ip;
 
     for (i = 0, ip = installed_pythons; i < num_installed_pythons; i++, ip++) {
-        if (wcsicmp(path, ip->executable) == 0) {
+        if (_wcsicmp(path, ip->executable) == 0) {
             result = ip;
             break;
         }
@@ -280,7 +280,7 @@ init_list(HWND hList)
 {
     LVCOLUMNW column;
     LVITEMW item;
-    WPARAM colno = 0;
+    int colno = 0;
     int width = 0;
     int row;
     size_t i;
@@ -317,11 +317,11 @@ init_list(HWND hList)
     memset(&item, 0, sizeof(item));
     item.mask = LVIF_TEXT;
     for (i = 0, ip = installed_pythons;  i < num_installed_pythons; i++,ip++) {
-        item.iItem = i;
+        item.iItem = (int) i;
         item.iSubItem = 0;
         item.pszText = ip->version;
         colno = 0;
-        row = SendMessage(hList, LVM_INSERTITEM, 0, (LPARAM) &item);
+        row = (int) SendMessage(hList, LVM_INSERTITEM, 0, (LPARAM) &item);
 #if defined(_M_X64)
         item.iSubItem = ++colno;
         item.pszText = (ip->bits == 64) ? L"64": L"32";
@@ -495,5 +495,5 @@ int WINAPI wWinMain(HINSTANCE hInstance,
         }
     }
 
-    return msg.wParam;
+    return (int) msg.wParam;
 }

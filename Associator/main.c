@@ -36,6 +36,31 @@ static wchar_t * location_checks[] = {
     NULL
 };
 
+static wchar_t *
+skip_whitespace(wchar_t * p)
+{
+    while (*p && isspace(*p))
+        ++p;
+    return p;
+}
+
+/*
+ * This function is here to minimise Visual Studio
+ * warnings about security implications of getenv, and to
+ * treat blank values as if they are absent.
+ */
+static wchar_t * get_env(wchar_t * key)
+{
+    wchar_t * result = _wgetenv(key);
+
+    if (result) {
+        result = skip_whitespace(result);
+        if (*result == L'\0')
+            result = NULL;
+    }
+    return result;
+}
+
 static FILE * log_fp = NULL;
 
 static void
@@ -218,15 +243,116 @@ locate_all_pythons()
           compare_pythons);
 }
 
-static void
+typedef struct {
+    wchar_t * path;
+    wchar_t * key;
+    wchar_t * value;
+} REGISTRY_ENTRY;
+
+static REGISTRY_ENTRY registry_entries[] = {
+    { L".py", NULL, L"Python.File" },
+    { L".pyc", NULL, L"Python.CompiledFile" },
+    { L".pyo", NULL, L"Python.CompiledFile" },
+    { L".pyw", NULL, L"Python.NoConFile" },
+
+    { L"Python.CompiledFile", NULL, L"Compiled Python File" },
+    { L"Python.CompiledFile\\DefaultIcon", NULL, L"pyc.ico" },
+    { L"Python.CompiledFile\\shell\\open", NULL, L"Open" },
+    { L"Python.CompiledFile\\shell\\open\\command", NULL, L"python.exe" },
+
+    { L"Python.File", NULL, L"Python File" },
+    { L"Python.File\\DefaultIcon", NULL, L"py.ico" },
+    { L"Python.File\\shell\\open", NULL, L"Open" },
+    { L"Python.File\\shell\\open\\command", NULL, L"python.exe" },
+
+    { L"Python.NoConFile", NULL, L"Python File (no console)" },
+    { L"Python.NoConFile\\DefaultIcon", NULL, L"py.ico" },
+    { L"Python.NoConFile\\shell\\open", NULL, L"Open" },
+    { L"Python.NoConFile\\shell\\open\\command", NULL, L"pythonw.exe" },
+
+    { NULL }
+};
+
+static BOOL
 do_association(INSTALLED_PYTHON * ip)
 {
+    LONG rc;
+    BOOL result = TRUE;
+    REGISTRY_ENTRY * rp = registry_entries;
+    wchar_t value[MAX_PATH];
+    wchar_t root[MAX_PATH];
+    wchar_t message[MSGSIZE];
+    wchar_t * pvalue;
+    DWORD len;
+
+    wcsncpy_s(root, MAX_PATH, ip->executable, _TRUNCATE);
+    pvalue = wcsrchr(root, '\\');
+    if (pvalue)
+        *pvalue = L'\0';
+
+    for (; rp->path; ++rp) {
+        if (wcsstr(rp->path, L"DefaultIcon")) {
+            pvalue = value;
+            _snwprintf_s(value, MAX_PATH, _TRUNCATE,
+                         L"%s\\DLLs\\%s", root, rp->value);
+        }
+        else if (wcsstr(rp->path, L"open\\command")) {
+            pvalue = value;
+            _snwprintf_s(value, MAX_PATH, _TRUNCATE,
+                         L"%s\\%s \"%%1\" %%*", root, rp->value);
+        }
+        else {
+            pvalue = rp->value;
+        }
+        /* use rp->path, rp->key, pvalue */
+        len = (1 + wcslen(pvalue)) * sizeof(wchar_t);   /* size is in bytes */
+        rc = RegSetKeyValueW(HKEY_CLASSES_ROOT, rp->path, rp->key, REG_SZ,
+                             pvalue, len);
+        if (rc != ERROR_SUCCESS) {
+            winerror(rc, message, MSGSIZE);
+            MessageBoxW(NULL, message, L"Unable to set file associations", MB_OK | MB_ICONSTOP);
+            result = FALSE;
+            break;
+        }
+    }
+    return result;
+}
+
+static BOOL
+associations_exist()
+{
+    BOOL rc = FALSE;
+
+    return rc;
 }
 
 /* --------------------------------------------------------------------*/
 
+static BOOL CALLBACK
+find_by_title(HWND hwnd, LPARAM lParam)
+{
+    wchar_t buffer[MSGSIZE];
+    BOOL not_found = TRUE;
+
+    wchar_t * p = (wchar_t *) GetWindowTextW(hwnd, buffer, MSGSIZE);
+    if (wcscmp(buffer, L"Windows Installer") == 0) {
+        not_found = FALSE;
+        *((HWND *) lParam) = hwnd;
+    }
+    return not_found;
+}
+
+static HWND
+find_installer_window()
+{
+    HWND result = NULL;
+    BOOL found = EnumWindows(find_by_title, (LPARAM) &result);
+
+    return result;
+}
+
 static void
-centre_window(HWND hwnd)
+centre_window_in_front(HWND hwnd)
 {
     HWND hwndParent;
     RECT rect, rectP;
@@ -272,7 +398,7 @@ centre_window(HWND hwnd)
     if (y + height > screenheight)
         y = screenheight - height;
 
-    MoveWindow(hwnd, x, y, width, height, TRUE);
+    SetWindowPos(hwnd, HWND_TOPMOST, x, y, width, height, 0);
 }
 
 static void
@@ -455,16 +581,20 @@ int WINAPI wWinMain(HINSTANCE hInstance,
     MSG  msg;
     HWND hDialog = 0;
     HICON hIcon;
+    HWND parent = find_installer_window();
     int status;
     wchar_t * wp;
 
-    wp = _wgetenv(L"PYASSOC_DEBUG");
+    wp = get_env(L"PYASSOC_DEBUG");
     if ((wp != NULL) && (*wp != L'\0'))
         log_fp = stderr;
 
     locate_all_pythons();
 
-    hDialog = CreateDialog(hInstance, MAKEINTRESOURCE(DLG_MAIN), 0,
+    if (num_installed_pythons == 0) /* is there anything to do? */
+        return 0;
+
+    hDialog = CreateDialogW(hInstance, MAKEINTRESOURCE(DLG_MAIN), parent,
                            DialogProc);
 
     if (!hDialog)
@@ -475,7 +605,7 @@ int WINAPI wWinMain(HINSTANCE hInstance,
         return 1;
     }
 
-    centre_window(hDialog);
+    centre_window_in_front(hDialog);
     hIcon = LoadIcon( GetModuleHandle(NULL), MAKEINTRESOURCE(DLG_ICON));
     if( hIcon )
     {

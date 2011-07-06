@@ -26,6 +26,15 @@
        <Merge Id='launcher_mod' Language='1033' SourceFile='$(var.MSMName)' DiskId='1' />
     </Directory>
 
+    <Binary Id='associator' SourceFile='$(var.BinDir)\Associator.exe'/>
+
+    <CustomAction Id='associate' BinaryKey='associator' Impersonate='no'
+                  Execute='deferred' ExeCommand='' Return='check'/>
+
+    <InstallExecuteSequence>
+      <Custom Action='associate' Before='InstallFinalize'>REMOVE ~= "ALL"</Custom>
+    </InstallExecuteSequence>
+
     <Feature Id='launcher' Title='$(var.ProdName)' Level='1'>
        <MergeRef Id='launcher_mod' />
     </Feature>

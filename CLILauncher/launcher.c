@@ -77,7 +77,8 @@ debug(wchar_t * format, ...)
     }
 }
 
-static void winerror(int rc, wchar_t * message, int size)
+static void
+winerror(int rc, wchar_t * message, int size)
 {
     FormatMessageW(
         FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -85,7 +86,8 @@ static void winerror(int rc, wchar_t * message, int size)
         message, size, NULL);
 }
 
-static int error(int rc, wchar_t * format, ... )
+static int
+error(int rc, wchar_t * format, ... )
 {
     va_list va;
     wchar_t message[MSGSIZE];
@@ -156,7 +158,8 @@ static wchar_t * location_checks[] = {
     NULL
 };
 
-static void locate_pythons_for_key(HKEY root, REGSAM flags)
+static void
+locate_pythons_for_key(HKEY root, REGSAM flags)
 {
     HKEY core_root, ip_key;
     LSTATUS status = RegOpenKeyExW(root, CORE_PATH, 0, flags, &core_root);

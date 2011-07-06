@@ -1,6 +1,7 @@
 #include <windows.h>
+#include <commctrl.h>
 #include <stdio.h>
-#include "rc.h"
+#include "resource.h"
 
 #define PYTHON_EXECUTABLE L"python.exe"
 
@@ -56,8 +57,24 @@ static void winerror(int rc, wchar_t * message, int size)
         message, size, NULL);
 }
 
+static INSTALLED_PYTHON *
+find_existing_python(wchar_t * path)
+{
+    INSTALLED_PYTHON * result = NULL;
+    size_t i;
+    INSTALLED_PYTHON * ip;
 
-static void locate_pythons_for_key(HKEY root, REGSAM flags)
+    for (i = 0, ip = installed_pythons; i < num_installed_pythons; i++, ip++) {
+        if (wcsicmp(path, ip->executable) == 0) {
+            result = ip;
+            break;
+        }
+    }
+    return result;
+}
+
+static void
+locate_pythons_for_key(HKEY root, REGSAM flags)
 {
     HKEY core_root, ip_key;
     LSTATUS status = RegOpenKeyExW(root, CORE_PATH, 0, flags, &core_root);
@@ -121,10 +138,16 @@ static void locate_pythons_for_key(HKEY root, REGSAM flags)
 attributes: %X\n",
                                   ip->executable, attrs);
                         }
+                        else if (find_existing_python(ip->executable)) {
+                            debug(L"locate_pythons_for_key: %s: already \
+found: %s\n", ip->executable);
+                        }
                         else {
                             /* check the executable type. */
                             ok = GetBinaryTypeW(ip->executable, &attrs);
                             if (!ok) {
+                                debug(L"Failure getting binary type: %s\n",
+                                      ip->executable);
                             }
                             else {
                                 if (attrs == SCS_64BIT_BINARY)
@@ -195,9 +218,15 @@ locate_all_pythons()
           compare_pythons);
 }
 
+static void
+do_association(INSTALLED_PYTHON * ip)
+{
+}
+
 /* --------------------------------------------------------------------*/
 
-BOOL CentreWindow(HWND hwnd)
+static void
+centre_window(HWND hwnd)
 {
     HWND hwndParent;
     RECT rect, rectP;
@@ -230,58 +259,190 @@ BOOL CentreWindow(HWND hwnd)
 
 
     //make sure that the dialog box never moves outside of
-
     //the screen
 
-    if(x < 0) x = 0;
+    if (x < 0)
+        x = 0;
 
-    if(y < 0) y = 0;
+    if (y < 0)
+        y = 0;
 
     if (x + width  > screenwidth)
         x = screenwidth  - width;
     if (y + height > screenheight)
         y = screenheight - height;
 
-    MoveWindow(hwnd, x, y, width, height, FALSE);
-    return TRUE;
+    MoveWindow(hwnd, x, y, width, height, TRUE);
 }
 
-INT_PTR CALLBACK DialogProc (HWND hwnd, UINT message, WPARAM wParam, 
-                             LPARAM lParam)
+static void
+init_list(HWND hList)
 {
-    switch (message)
-    {
+    LVCOLUMNW column;
+    LVITEMW item;
+    WPARAM colno = 0;
+    int width = 0;
+    int row;
+    size_t i;
+    INSTALLED_PYTHON * ip;
+    RECT r;
+    LPARAM style;
+
+    GetClientRect(hList, &r);
+
+    style = SendMessage(hList, LVM_GETEXTENDEDLISTVIEWSTYLE, 0, 0);
+    SendMessage(hList, LVM_SETEXTENDEDLISTVIEWSTYLE,
+                0, style | LVS_EX_FULLROWSELECT);
+
+    /* First set up the columns */
+    memset(&column, 0, sizeof(column));
+    column.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
+    column.pszText = L"Version";
+    column.cx = 60;
+    width += column.cx;
+    SendMessage(hList, LVM_INSERTCOLUMN, colno++,(LPARAM) &column);
+#if defined(_M_X64)
+    column.pszText = L"Bits";
+    column.cx = 40;
+    column.iSubItem = colno;
+    SendMessage(hList, LVM_INSERTCOLUMN, colno++,(LPARAM) &column);
+    width += column.cx;
+#endif
+    column.pszText = L"Path";
+    column.cx = r.right - r.top - width;
+    column.iSubItem = colno;
+    SendMessage(hList, LVM_INSERTCOLUMN, colno++,(LPARAM) &column);
+
+    /* Then insert the rows */
+    memset(&item, 0, sizeof(item));
+    item.mask = LVIF_TEXT;
+    for (i = 0, ip = installed_pythons;  i < num_installed_pythons; i++,ip++) {
+        item.iItem = i;
+        item.iSubItem = 0;
+        item.pszText = ip->version;
+        colno = 0;
+        row = SendMessage(hList, LVM_INSERTITEM, 0, (LPARAM) &item);
+#if defined(_M_X64)
+        item.iSubItem = ++colno;
+        item.pszText = (ip->bits == 64) ? L"64": L"32";
+        SendMessage(hList, LVM_SETITEM, row, (LPARAM) &item);
+#endif
+        item.iSubItem = ++colno;
+        item.pszText = ip->executable;
+        SendMessage(hList, LVM_SETITEM, row, (LPARAM) &item);
+    }
+}
+
+/* ----------------------------------------------------------------*/
+
+typedef int (__stdcall *MSGBOXWAPI)(IN HWND hWnd, 
+        IN LPCWSTR lpText, IN LPCWSTR lpCaption, 
+        IN UINT uType, IN WORD wLanguageId, IN DWORD dwMilliseconds);
+
+int MessageBoxTimeoutW(IN HWND hWnd, IN LPCWSTR lpText, 
+    IN LPCWSTR lpCaption, IN UINT uType, 
+    IN WORD wLanguageId, IN DWORD dwMilliseconds);
+
+#define MB_TIMEDOUT 32000
+
+int MessageBoxTimeoutW(HWND hWnd, LPCWSTR lpText, 
+    LPCWSTR lpCaption, UINT uType, WORD wLanguageId, DWORD dwMilliseconds)
+{
+    static MSGBOXWAPI MsgBoxTOW = NULL;
+
+    if (!MsgBoxTOW) {
+        HMODULE hUser32 = GetModuleHandleW(L"user32.dll");
+        if (hUser32)
+            MsgBoxTOW = (MSGBOXWAPI)GetProcAddress(hUser32, 
+                                      "MessageBoxTimeoutW");
+        else {
+            //stuff happened, add code to handle it here 
+            //(possibly just call MessageBox())
+            return 0;
+        }
+    }
+
+    if (MsgBoxTOW)
+        return MsgBoxTOW(hWnd, lpText, lpCaption, uType, wLanguageId,
+                         dwMilliseconds);
+
+    return 0;
+}
+/* ----------------------------------------------------------------*/
+
+static INT_PTR CALLBACK
+DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    HWND hList;
+    HWND hChild;
+    static int selected_index = -1;
+    WORD low = LOWORD(wParam);
+    wchar_t confirmation[MSGSIZE];
+
+    switch (message) {
     case WM_INITDIALOG:
-/*
-        try
-        {
-            control = new Controller (hwnd);
-        }
-        catch (WinException e)
-        {
-            MessageBox (0, e.GetMessage (), "Exception",
-                        MB_ICONEXCLAMATION | MB_OK);
-            PostQuitMessage(1);
-        }
-        catch (...)
-        {
-            MessageBox (0, "Unknown", "Exception",
-                        MB_ICONEXCLAMATION | MB_OK);
-            PostQuitMessage(2);
-        }
- */
+        hList = GetDlgItem(hDlg, IDC_LIST1);
+        init_list(hList);
+        SetFocus(hList);
         return TRUE;
     case WM_COMMAND:
-        /* control->Command(hwnd, LOWORD (wParam), HIWORD (wParam)); */
+        if((low == IDOK) || (low == IDCANCEL)) {
+            HMODULE hUser32 = LoadLibraryW(L"user32.dll");
+
+            if (low == IDCANCEL)
+                wcsncpy_s(confirmation, MSGSIZE, L"No association was \
+performed.", _TRUNCATE);
+            else {
+                if (selected_index < 0) {
+                /* should never happen */
+                    wcsncpy_s(confirmation, MSGSIZE, L"The Python version to \
+associate with couldn't be determined.", _TRUNCATE);
+                }
+                else {
+                    INSTALLED_PYTHON * ip = &installed_pythons[selected_index];
+
+                    /* Do the association and set the message. */
+                    do_association(ip);
+                    _snwprintf_s(confirmation, MSGSIZE, _TRUNCATE,
+                                 L"Associated Python files with the Python %s \
+found at '%s'", ip->version, ip->executable);
+                }
+            }
+
+            if (hUser32) {
+                MessageBoxTimeoutW(NULL,
+                                   confirmation, 
+                                   L"Association Status",
+                                   MB_OK| MB_SETFOREGROUND |
+                                   MB_SYSTEMMODAL | MB_ICONINFORMATION,
+                                   0, 2000);
+                FreeLibrary(hUser32);
+            }
+            PostQuitMessage(0);
+            EndDialog(hDlg, 0);
+            return TRUE;
+        }
+        break;
+    case WM_NOTIFY:
+        if (low == IDC_LIST1) {
+            NMLISTVIEW * p = (NMLISTVIEW *) lParam;
+
+            if ((p->hdr.code == LVN_ITEMCHANGED) &&
+                (p->uNewState && LVIS_SELECTED)) {
+                hChild = GetDlgItem(hDlg, IDOK);
+                selected_index = p->iItem;
+                EnableWindow(hChild, selected_index >= 0);
+            }
+        }
         return TRUE;
+        break;
     case WM_HSCROLL:
-        /* control->Scroll (hwnd, LOWORD (wParam), HIWORD (wParam)); */
         return 0;
     case WM_DESTROY:
         PostQuitMessage(0);
         return TRUE;
     case WM_CLOSE:
-        DestroyWindow (hwnd);
+        DestroyWindow(hDlg);
         return TRUE;
     }
     return FALSE;
@@ -301,23 +462,25 @@ int WINAPI wWinMain(HINSTANCE hInstance,
     if ((wp != NULL) && (*wp != L'\0'))
         log_fp = stderr;
 
-    hDialog = CreateDialog(hInstance, MAKEINTRESOURCE (DLG_MAIN), 0,
+    locate_all_pythons();
+
+    hDialog = CreateDialog(hInstance, MAKEINTRESOURCE(DLG_MAIN), 0,
                            DialogProc);
 
     if (!hDialog)
     {
         wchar_t buf [100];
-        swprintf_s(buf, 100, L"Error x%x", GetLastError());
+        _snwprintf_s(buf, 100, _TRUNCATE, L"Error 0x%x", GetLastError());
         MessageBoxW(0, buf, L"CreateDialog", MB_ICONEXCLAMATION | MB_OK);
         return 1;
     }
 
-    CentreWindow(hDialog);
-    hIcon = LoadIcon( GetModuleHandle(NULL), MAKEINTRESOURCE(DLG_ICON) );
+    centre_window(hDialog);
+    hIcon = LoadIcon( GetModuleHandle(NULL), MAKEINTRESOURCE(DLG_ICON));
     if( hIcon )
     {
-       SendMessage(hDialog, WM_SETICON, ICON_BIG, (LPARAM)hIcon );
-       SendMessage(hDialog, WM_SETICON, ICON_SMALL, (LPARAM)hIcon );
+       SendMessage(hDialog, WM_SETICON, ICON_BIG, (LPARAM) hIcon);
+       SendMessage(hDialog, WM_SETICON, ICON_SMALL, (LPARAM) hIcon);
        DestroyIcon(hIcon);
     }
 
@@ -325,10 +488,10 @@ int WINAPI wWinMain(HINSTANCE hInstance,
     {
         if (status == -1)
             return -1;
-        if (!IsDialogMessage (hDialog, & msg))
+        if (!IsDialogMessage(hDialog, & msg))
         {
-            TranslateMessage ( & msg );
-            DispatchMessage ( & msg );
+            TranslateMessage( & msg );
+            DispatchMessage( & msg );
         }
     }
 

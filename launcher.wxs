@@ -31,29 +31,5 @@
     </Feature>
     <Icon Id='arpicon' SourceFile='launcher.ico'/>
     <Property Id='ARPPRODUCTICON' Value='arpicon' />
-
-    <CustomTable Id='InstalledPythons'>
-      <Column Id='Version' Category='Text' Type='string' PrimaryKey='yes'/>
-      <Column Id='Architecture' Category='Text' Type='string' PrimaryKey='yes'/>
-      <Column Id='Path' Category='Text' Type='string' PrimaryKey='yes'/>
-    </CustomTable>
-
-    <EnsureTable Id='InstalledPythons'/>
-
-    <Binary Id='setup_support' SourceFile='$(var.BinDir)\SetupSupport.dll'/>
-
-    <CustomAction Id='collect_pythons' BinaryKey='setup_support'
-                  DllEntry='collect_pythons'
-                  Execute='immediate' Return='check'/>
-
-    <CustomAction Id='associate_python' BinaryKey='setup_support'
-                  DllEntry='associate_python'
-                  Execute='immediate' Return='check'/>
-
-    <InstallExecuteSequence>
-      <Custom Action='collect_pythons' After='CostFinalize'>REMOVE ~= "ALL"</Custom>
-      <Custom Action='associate_python' After='RemoveFiles'>REMOVE ~= "ALL"</Custom>
-    </InstallExecuteSequence>
-    <!-- UIRef Id='WixUI_Minimal'/ -->
   </Product>
 </Wix>

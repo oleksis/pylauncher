@@ -308,6 +308,7 @@ do_association(INSTALLED_PYTHON * ip)
     wchar_t root[MAX_PATH];
     wchar_t message[MSGSIZE];
     wchar_t * pvalue;
+    HKEY hKey;
     DWORD len;
 
     wcsncpy_s(root, MAX_PATH, ip->executable, _TRUNCATE);
@@ -332,8 +333,11 @@ do_association(INSTALLED_PYTHON * ip)
         /* use rp->path, rp->key, pvalue */
         /* NOTE: size is in bytes */
         len = (DWORD) ((1 + wcslen(pvalue)) * sizeof(wchar_t));
-        rc = RegSetKeyValueW(HKEY_CLASSES_ROOT, rp->path, rp->key, REG_SZ,
-                             pvalue, len);
+        rc = RegOpenKeyEx(HKEY_CLASSES_ROOT, rp->path, 0, KEY_SET_VALUE, &hKey);
+        if (rc == ERROR_SUCCESS) {
+            rc = RegSetValueExW(hKey, rp->key, 0, REG_SZ, (LPBYTE) pvalue, len);
+            RegCloseKey(hKey);
+        }
         if (rc != ERROR_SUCCESS) {
             winerror(rc, message, MSGSIZE);
             MessageBoxW(NULL, message, L"Unable to set file associations", MB_OK | MB_ICONSTOP);

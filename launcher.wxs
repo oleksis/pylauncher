@@ -29,7 +29,7 @@
     <Binary Id='associator' SourceFile='$(var.BinDir)\Associator.exe'/>
 
     <CustomAction Id='associate' BinaryKey='associator' Impersonate='no'
-                  Execute='deferred' ExeCommand='' Return='check'/>
+                  Execute='deferred' ExeCommand='' Return='ignore'/>
 
     <InstallExecuteSequence>
       <Custom Action='associate' Before='InstallFinalize'>REMOVE ~= "ALL"</Custom>

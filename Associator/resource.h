@@ -990,7 +990,6 @@
 #define WM_SYSCHAR                      0x0106
 #define WM_SYSDEADCHAR                  0x0107
 #define WM_UNICHAR                      0x0109
-#define WM_KEYLAST                      0x0109
 #define WM_IME_STARTCOMPOSITION         0x010D
 #define WM_IME_ENDCOMPOSITION           0x010E
 #define WM_IME_COMPOSITION              0x010F
@@ -1052,7 +1051,6 @@
 #define WM_XBUTTONUP                    0x020C
 #define WM_XBUTTONDBLCLK                0x020D
 #define WM_MOUSEHWHEEL                  0x020E
-#define WM_MOUSELAST                    0x020E
 #define WM_PARENTNOTIFY                 0x0210
 #define WM_ENTERMENULOOP                0x0211
 #define WM_EXITMENULOOP                 0x0212

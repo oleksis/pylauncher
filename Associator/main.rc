@@ -25,8 +25,9 @@ DLG_ICON                ICON                    "launcher.ico"
 // Dialog
 //
 
-DLG_MAIN DIALOGEX 20, 40, 239, 183
-STYLE DS_SETFONT | DS_3DLOOK | WS_MINIMIZEBOX | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+DLG_MAIN DIALOGEX 20, 40, 236, 183
+// Make the dialog visible after centering
+STYLE DS_3DLOOK | WS_MINIMIZEBOX | WS_CAPTION | WS_SYSMENU
 EXSTYLE WS_EX_NOPARENTNOTIFY
 CAPTION "Python File Associations Have Ceased To Be!"
 FONT 10, "Arial", 400, 0, 0x0

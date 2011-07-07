@@ -442,7 +442,7 @@ centre_window_in_front(HWND hwnd)
     if (y + height > screenheight)
         y = screenheight - height;
 
-    SetWindowPos(hwnd, HWND_TOPMOST, x, y, width, height, 0);
+    SetWindowPos(hwnd, HWND_TOPMOST, x, y, width, height, SWP_SHOWWINDOW);
 }
 
 static void
@@ -627,6 +627,7 @@ int WINAPI wWinMain(HINSTANCE hInstance,
     HICON hIcon;
     HWND hParent;
     int status;
+    DWORD dw;
     wchar_t * wp;
 
     wp = get_env(L"PYASSOC_DEBUG");
@@ -649,8 +650,11 @@ int WINAPI wWinMain(HINSTANCE hInstance,
      * our dialog, otherwise our dialog will be behind it.
      */
     hParent = find_installer_window();
+    debug(L"installer window: %X\n", hParent);
     hDialog = CreateDialogW(hInstance, MAKEINTRESOURCE(DLG_MAIN), hParent,
                             DialogProc);
+    dw = GetLastError();
+    debug(L"dialog created: %X: error: %X\n", hDialog, dw);
 
     if (!hDialog)
     {

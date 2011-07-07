@@ -56,8 +56,10 @@ static size_t num_installed_pythons = 0;
 
 static wchar_t * location_checks[] = {
     L"\\",
+/*
     L"\\PCBuild\\",
     L"\\PCBuild\\amd64\\",
+ */
     NULL
 };
 
@@ -379,7 +381,7 @@ find_by_title(HWND hwnd, LPARAM lParam)
     BOOL not_found = TRUE;
 
     wchar_t * p = (wchar_t *) GetWindowTextW(hwnd, buffer, MSGSIZE);
-    if (wcsstr(buffer, L"Python Launcher") == 0) {
+    if (wcsstr(buffer, L"Python Launcher") == buffer) {
         not_found = FALSE;
         *((HWND *) lParam) = hwnd;
     }
@@ -548,13 +550,16 @@ DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     static int selected_index = -1;
     WORD low = LOWORD(wParam);
     wchar_t confirmation[MSGSIZE];
+    BOOL result = FALSE;
 
+    debug(L"DialogProc entry: 0x%02X\n", message);
     switch (message) {
     case WM_INITDIALOG:
         hList = GetDlgItem(hDlg, IDC_LIST1);
         init_list(hList);
         SetFocus(hList);
-        return TRUE;
+        result = TRUE;
+        break;
     case WM_COMMAND:
         if((low == IDOK) || (low == IDCANCEL)) {
             HMODULE hUser32 = LoadLibraryW(L"user32.dll");
@@ -590,7 +595,7 @@ found at '%s'", ip->version, ip->executable);
             }
             PostQuitMessage(0);
             EndDialog(hDlg, 0);
-            return TRUE;
+            result = TRUE;
         }
         break;
     case WM_NOTIFY:
@@ -603,19 +608,20 @@ found at '%s'", ip->version, ip->executable);
                 selected_index = p->iItem;
                 EnableWindow(hChild, selected_index >= 0);
             }
+            result = TRUE;
         }
-        return TRUE;
         break;
-    case WM_HSCROLL:
-        return 0;
     case WM_DESTROY:
         PostQuitMessage(0);
-        return TRUE;
+        result = TRUE;
+        break;
     case WM_CLOSE:
         DestroyWindow(hDlg);
-        return TRUE;
+        result = TRUE;
+        break;
     }
-    return FALSE;
+    debug(L"DialogProc exit: %d\n", result);
+    return result;
 }
 
 int WINAPI wWinMain(HINSTANCE hInstance,
@@ -628,11 +634,13 @@ int WINAPI wWinMain(HINSTANCE hInstance,
     HWND hParent;
     int status;
     DWORD dw;
+    INITCOMMONCONTROLSEX icx;
     wchar_t * wp;
 
     wp = get_env(L"PYASSOC_DEBUG");
-    if ((wp != NULL) && (*wp != L'\0'))
-        log_fp = stderr;
+    if ((wp != NULL) && (*wp != L'\0')) {
+        fopen_s(&log_fp, "c:\\temp\\associator.log", "w");
+    }
 
     if (!wcsstr(lpCmdLine, L"nocheck") &&
         associations_exist())   /* Could have been restored by uninstall. */
@@ -643,12 +651,23 @@ int WINAPI wWinMain(HINSTANCE hInstance,
     if (num_installed_pythons == 0)
         return 0;
 
+    debug(L"%d pythons found.\n", num_installed_pythons);
+
     /*
      * OK, now there's something to do.
      *
      * We need to find the installer window to be the parent of
      * our dialog, otherwise our dialog will be behind it.
+     *
+     * First, initialize common controls. If you don't - on
+     * some machines it works fine, on others the dialog never
+     * appears!
      */
+
+    icx.dwSize = sizeof(icx);
+    icx.dwICC = ICC_LISTVIEW_CLASSES;
+    InitCommonControlsEx(&icx);
+
     hParent = find_installer_window();
     debug(L"installer window: %X\n", hParent);
     hDialog = CreateDialogW(hInstance, MAKEINTRESOURCE(DLG_MAIN), hParent,

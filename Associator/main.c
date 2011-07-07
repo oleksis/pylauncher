@@ -633,7 +633,8 @@ int WINAPI wWinMain(HINSTANCE hInstance,
     if ((wp != NULL) && (*wp != L'\0'))
         log_fp = stderr;
 
-    if (associations_exist())   /* Could have been restored by uninstall. */
+    if (!wcsstr(lpCmdLine, L"nocheck") &&
+        associations_exist())   /* Could have been restored by uninstall. */
         return 0;
 
     locate_all_pythons();

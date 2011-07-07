@@ -29,7 +29,7 @@ DLG_MAIN DIALOGEX 20, 40, 239, 183
 STYLE DS_SETFONT | DS_3DLOOK | WS_MINIMIZEBOX | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
 EXSTYLE WS_EX_NOPARENTNOTIFY
 CAPTION "Python File Associations Have Ceased To Be!"
-FONT 10, "Tahoma", 400, 0, 0x0
+FONT 10, "Arial", 400, 0, 0x0
 BEGIN
     LTEXT           "You've uninstalled the Python Launcher, so now there are no applications associated with Python files.",IDC_STATIC,7,7,225,18
     LTEXT           "You may wish to associate Python files with one of the Python versions installed on your machine, listed below:",IDC_STATIC,7,27,225,18

@@ -18,7 +18,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-DLG_ICON                ICON                    "launcher.ico"
+DLG_ICON                ICON                    "..\\launcher.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //

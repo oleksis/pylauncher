@@ -27,12 +27,19 @@
     </Directory>
 
     <Binary Id='associator' SourceFile='$(var.BinDir)\Associator.exe'/>
+    <Binary Id='messager' SourceFile='$(var.BinDir)\Messager.exe'/>
 
     <CustomAction Id='associate' BinaryKey='associator' Impersonate='no'
                   Execute='deferred' ExeCommand='' Return='ignore'/>
 
+    <CustomAction Id='notify_success' BinaryKey='messager' Impersonate='yes'
+                  Execute='deferred'
+                  ExeCommand='40~Python Launcher was successfully installed.~Installation Status~3000'
+                  Return='ignore'/>
+
     <InstallExecuteSequence>
       <Custom Action='associate' Before='InstallFinalize'>REMOVE ~= "ALL"</Custom>
+      <Custom Action='notify_success' Before='InstallFinalize'>NOT Installed</Custom>
     </InstallExecuteSequence>
 
     <Feature Id='launcher' Title='$(var.ProdName)' Level='1'>

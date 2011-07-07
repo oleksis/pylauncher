@@ -153,8 +153,10 @@ static size_t num_installed_pythons = 0;
 
 static wchar_t * location_checks[] = {
     L"\\",
+/*
     L"\\PCBuild\\",
     L"\\PCBuild\\amd64\\",
+ */
     NULL
 };
 

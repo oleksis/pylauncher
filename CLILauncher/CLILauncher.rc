@@ -95,6 +95,8 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_ICON1               ICON                    "..\\launcher.ico"
+IDI_ICON2               ICON                    "..\\py.ico"
+IDI_ICON3               ICON                    "..\\pyc.ico"
 #endif    // English (U.K.) resources
 /////////////////////////////////////////////////////////////////////////////
 

@@ -18,8 +18,8 @@ Once the executables have been built, you can run buildmsi.cmd to build the
 installers (you'll need the WiX toolkit installed and on your path in order to
 do this).
 
-Usage
------
+Installation and Uninstallation
+-------------------------------
 
 You can install the launcher using
 
@@ -43,6 +43,25 @@ no previous file associations, the launcher will display a dialog showing all
 installed Pythons and offer you the option of associating Python files with one
 of them. You can choose to associate with a Python of your choice, or avoid
 associating these files altogether.
+
+Usage
+-----
+
+See the PEP for how the launcher is supposed to work. In practice, once the
+launcher is installed, you can run any Python script on your system even if
+Python is not on the path, simply invoking the script by name (if you have
+.py and .pyw in your PATHEXT environment variable, you don't even need to
+specify the extension):
+
+C:\Users\Vinay> script arg1 arg2 arg3
+
+If you have more than one Python installed, the first line of the script can
+indicate a specific Python to run it with:
+
+#!python    -> the default Python (usually the most recent Python 2.x)
+#!python2   -> the most recent Python 2.x
+#!python3   -> the most recent Python 3.x
+#!python3.2 -> Python 3.2 (an error will be raised if that's not installed)
 
 Software Status
 ---------------

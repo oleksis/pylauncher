@@ -1,0 +1,3 @@
+#include "resource.h"
+
+APP_ICON  ICON "..\\launcher.ico"

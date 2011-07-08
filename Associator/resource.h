@@ -1014,7 +1014,6 @@
 #define WM_UPDATEUISTATE                0x0128
 #define WM_QUERYUISTATE                 0x0129
 #define DLG_ICON                        300
-#define DLG_ICON_S                      301
 #define WM_CTLCOLORMSGBOX               0x0132
 #define WM_CTLCOLOREDIT                 0x0133
 #define WM_CTLCOLORLISTBOX              0x0134

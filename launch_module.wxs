@@ -22,8 +22,6 @@
             <File Id='py' Name='py.exe' Source='$(var.BinDir)\py.exe' />
             <File Id='pyw' Name='pyw.exe' Source='$(var.BinDir)\pyw.exe' />
             <File Id='ini' Name='py.ini' Source='$(var.BinDir)\py.ini' />
-            <!-- File Id='pycicon' Name='pyc.ico' Source='pyc.ico' />
-            <File Id='pyicon' Name='py.ico' Source='py.ico' / -->
             <ProgId Id='Python.File' Description='Python File'
                     Icon='py' IconIndex='1'>
               <Extension Id='py'>

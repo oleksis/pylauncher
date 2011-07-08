@@ -585,11 +585,11 @@ found at '%s'", ip->version, ip->executable);
             }
 
             if (hUser32) {
-                MessageBoxTimeoutW(NULL,
+                MessageBoxTimeoutW(hDlg,
                                    confirmation, 
                                    L"Association Status",
-                                   MB_OK| MB_SETFOREGROUND |
-                                   MB_SYSTEMMODAL | MB_ICONINFORMATION,
+                                   MB_OK | MB_SETFOREGROUND |
+                                   MB_ICONINFORMATION,
                                    0, 2000);
                 FreeLibrary(hUser32);
             }

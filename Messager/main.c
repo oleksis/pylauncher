@@ -64,6 +64,31 @@ int MessageBoxTimeoutW(HWND hWnd, LPCWSTR lpText,
 /* ----------------------------------------------------------------*/
 
 #define MSGSIZE 1024
+
+static BOOL CALLBACK
+find_by_title(HWND hwnd, LPARAM lParam)
+{
+    wchar_t buffer[MSGSIZE];
+    BOOL not_found = TRUE;
+
+    wchar_t * p = (wchar_t *) GetWindowTextW(hwnd, buffer, MSGSIZE);
+    if (wcsstr(buffer, L"Python Launcher") == buffer) {
+        not_found = FALSE;
+        *((HWND *) lParam) = hwnd;
+    }
+    return not_found;
+}
+
+static HWND
+find_installer_window()
+{
+    HWND result = NULL;
+    BOOL found = EnumWindows(find_by_title, (LPARAM) &result);
+
+    return result;
+}
+
+
 #define MAX_TOKENS 10
 
 #define ICON_INDEX      0
@@ -85,6 +110,7 @@ int WINAPI wWinMain(HINSTANCE hInstance,
     int i;
     UINT icon;
     UINT delay;
+    HWND parent = find_installer_window();
     
     wcsncpy_s(line, MSGSIZE, lpCmdLine, _TRUNCATE);
     for (i = 0; i < MAX_TOKENS; i++) {
@@ -104,11 +130,11 @@ int WINAPI wWinMain(HINSTANCE hInstance,
         if (delay > MAX_DELAY)
             delay = DEFAULT_DELAY;
         if (delay == 0) {
-            MessageBoxW(NULL, tokens[DETAIL_INDEX], tokens[CAPTION_INDEX],
+            MessageBoxW(parent, tokens[DETAIL_INDEX], tokens[CAPTION_INDEX],
                        icon);
         }
         else {
-            MessageBoxTimeoutW(NULL, tokens[DETAIL_INDEX], tokens[CAPTION_INDEX],
+            MessageBoxTimeoutW(parent, tokens[DETAIL_INDEX], tokens[CAPTION_INDEX],
                                icon, 0, delay);
         }
     }

@@ -35,7 +35,7 @@ they should be restored when the launcher is uninstalled.
 
 You can uninstall using
 
-msiexec /i launcher.msi
+msiexec /x launcher.msi
 
 On successful uninstallations, any file associations for Python files should
 be restored to what they were before you installed the launcher. If there were

@@ -2,29 +2,42 @@
 <?if $(var.Platform) = x64 ?>
   <?define ProdCode = '1CB6C42B-5887-47CF-AF21-988256F0455B' ?>
   <?define ProdName = 'Python Launcher (64-bit)' ?>
-  <?define MSMName = 'launch_module.amd64.msm' ?>
   <?define BinDir = 'x64\Release' ?>
+  <?define CompGuid = '46BCEFDD-EAFE-49A8-9FCB-27371AAC7ABD' ?>
 <?else ?>
   <?define ProdCode = '298B5D62-1287-427F-B8D9-B44D605F8F6B' ?>
   <?define ProdName = 'Python Launcher' ?>
-  <?define MSMName = 'launch_module.msm' ?>
   <?define BinDir = 'Release' ?>
+  <?define CompGuid = '13D8FC31-04E9-4AC9-AE0B-E28F61DE99B9' ?>
 <?endif ?>
-
 <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
   <Product Id='$(var.ProdCode)' Name='$(var.ProdName)' Language='1033'
            Version='$(var.Version)' Manufacturer='$(var.Manufacturer)'
            UpgradeCode='36B0A82E-0B4E-47CD-895B-FD4EC726B3AC'>
     <Package Description='Python Launcher facilitates running Python files on Windows.'
              Comments='This is a standalone version of the Python Launcher'
-             Manufacturer='Vinay Sajip' InstallerVersion='200' Compressed='yes'
+             Manufacturer='$(var.Manufacturer)' InstallerVersion='200' Compressed='yes'
              Platform='$(var.Platform)' />
- 
-    <Media Id='1' Cabinet='launcher.cab' EmbedCab='yes' />
 
-    <Directory Id='TARGETDIR' Name='SourceDir'>
-       <Merge Id='launcher_mod' Language='1033' SourceFile='$(var.MSMName)' DiskId='1' />
-    </Directory>
+    <Media Id='1' Cabinet='launcher.cab' EmbedCab='yes' />
+ 
+    <?ifdef ToSystem ?>
+        <?if $(var.Platform) = x64 ?>
+            <?define TheTarget = '[System64Folder]' ?>
+        <?else ?>
+            <?define TheTarget = '[SystemFolder]' ?>
+        <?endif ?>
+    <?else ?>
+        <?if $(var.Platform) = x64 ?>
+            <?define PFF = 'ProgramFiles64Folder' ?>
+        <?else ?>
+            <?define PFF = 'ProgramFilesFolder' ?>
+        <?endif ?>
+        <?define TheTarget = '[$(var.PFF)][Manufacturer]\[ProductName]' ?>
+    <?endif ?>
+
+    <CustomAction Id='set_target_dir' Return='check'
+                  Property='TARGETDIR' Value='$(var.TheTarget)'/>
 
     <Binary Id='associator' SourceFile='$(var.BinDir)\Associator.exe'/>
     <Binary Id='messager' SourceFile='$(var.BinDir)\Messager.exe'/>
@@ -38,14 +51,46 @@
                   Return='ignore'/>
 
     <InstallExecuteSequence>
+      <Custom Action='set_target_dir' Before='CostFinalize'/>
       <Custom Action='associate' Before='InstallFinalize'>REMOVE ~= "ALL"</Custom>
       <Custom Action='notify_success' Before='InstallFinalize'>NOT Installed</Custom>
     </InstallExecuteSequence>
 
-    <Feature Id='launcher' Title='$(var.ProdName)' Level='1'>
-       <MergeRef Id='launcher_mod' />
+    <Directory Id='TARGETDIR' Name='SourceDir'/>
+
+    <DirectoryRef Id='TARGETDIR'>
+        <Component Id='launcher' Guid='$(var.CompGuid)'>
+          <File Id='py' Name='py.exe' Source='$(var.BinDir)\py.exe' />
+          <File Id='pyw' Name='pyw.exe' Source='$(var.BinDir)\pyw.exe' />
+          <File Id='ini' Name='py.ini' Source='$(var.BinDir)\py.ini' />
+          <ProgId Id='Python.File' Description='Python File'
+                  Icon='py' IconIndex='1'>
+            <Extension Id='py'>
+              <Verb Id='open' Command='Open' TargetFile='py' Argument='"%1" %*'/>
+            </Extension>
+          </ProgId>
+          <ProgId Id='Python.NoConFile' Description='Python File (no console)'
+                  Icon='py' IconIndex='1'>
+            <Extension Id='pyw'>
+              <Verb Id='open' Command='Open' TargetFile='pyw' Argument='"%1" %*'/>
+            </Extension>
+          </ProgId>
+          <ProgId Id='Python.CompiledFile' Description='Compiled Python File'
+                  Icon='py' IconIndex='2'>
+            <Extension Id='pyc'>
+              <Verb Id='open' Command='Open' TargetFile='py' Argument='"%1" %*'/>
+            </Extension>
+            <Extension Id='pyo'>
+              <!-- No Verb needed here, as it's associated with ProgId
+                   and not the extension, and the same launcher
+                   is used. -->
+            </Extension>
+          </ProgId>
+        </Component>
+    </DirectoryRef>
+
+    <Feature Id='launcher_feature' Level='1'>
+      <ComponentRef Id='launcher'/>
     </Feature>
-    <Icon Id='arpicon' SourceFile='launcher.ico'/>
-    <Property Id='ARPPRODUCTICON' Value='arpicon' />
   </Product>
 </Wix>

@@ -44,6 +44,26 @@ installed Pythons and offer you the option of associating Python files with one
 of them. You can choose to associate with a Python of your choice, or avoid
 associating these files altogether.
 
+Variants of the launcher
+------------------------
+
+There are four variants of the launcher MSI which you can download:
+
+launcher.msi        32-bit launcher, installs to \Program Files\Python Launcher
+launcher.amd64.msi  64-bit launcher, installs to \Program Files\Python Launcher
+launchsys.msi       32-bit launcher, installs to Windows\System32
+launchsys.amd64.msi 64-bit launcher, installs to Windows\System32
+
+One advantage of the versions which install to the Windows System32 folder is
+that you can invoke the launcher itself more easily, using just "py" or "pyw",
+as the System32 folder is on the PATH. Note, however, that this won't work if
+you install the 32-bit launcher on a 64-bit system, which will correctly
+install the files to \Windows\SysWow64 - but this is not on the PATH.
+
+The 32-bit launchers, when run on a 64-bit system, won't be able to find any
+installed 64-bit Pythons. This is because 64-bit Windows redirects 32-bit
+registry accesses to a 32-bit-specific registry area.
+
 Usage
 -----
 

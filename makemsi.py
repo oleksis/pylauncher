@@ -21,12 +21,17 @@ def invoke(command):
 
 def main(args=None):
     parser = argparse.ArgumentParser()
+    parser.add_argument('-o', dest='output')
     parser.add_argument('options', nargs='*', metavar='OPTION',
                         help='An option in the form NAME or NAME=VALUE')
     parser.add_argument('wxsname', metavar='WXSNAME',
                         help='The base name of the WiX source file')
     cmdline = parser.parse_args(args)
     wxsname = cmdline.wxsname
+    if cmdline.output:
+        msiname = cmdline.output
+    else:
+        msiname = wxsname
     wxsfn = '%s.wxs' % wxsname
     objfn = '%s.wixobj' % wxsname
     opts = cmdline.options
@@ -34,11 +39,11 @@ def main(args=None):
     if not plats:
         opts.append('Platform=x86')
     if 'Platform=x64' in plats:
-        msifn = '%s.amd64.msi' % wxsname
-        pdbfn = '%s.amd64.wixpdb' % wxsname
+        msifn = '%s.amd64.msi' % msiname
+        pdbfn = '%s.amd64.wixpdb' % msiname
     else:
-        msifn = '%s.msi' % wxsname
-        pdbfn = '%s.wixpdb' % wxsname
+        msifn = '%s.msi' % msiname
+        pdbfn = '%s.wixpdb' % msiname
     if opts:
         opts = [ '-d%s' % opt for opt in opts]
     invoke(['candle'] + opts + [wxsfn])

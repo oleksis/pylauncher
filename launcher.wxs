@@ -33,7 +33,7 @@
         <?else ?>
             <?define PFF = 'ProgramFilesFolder' ?>
         <?endif ?>
-        <?define TheTarget = '[$(var.PFF)][Manufacturer]\[ProductName]' ?>
+        <?define TheTarget = '[$(var.PFF)][ProductName]' ?>
     <?endif ?>
 
     <CustomAction Id='set_target_dir' Return='check'

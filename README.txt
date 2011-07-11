@@ -64,6 +64,30 @@ The 32-bit launchers, when run on a 64-bit system, won't be able to find any
 installed 64-bit Pythons. This is because 64-bit Windows redirects 32-bit
 registry accesses to a 32-bit-specific registry area.
 
+User Permissions
+----------------
+
+There are a couple of points worth noting about how the installers work:
+
+1. If you don't have administrator rights on the machine you're installing on,
+   you probably won't be able to complete the installation, because you don't
+   have permissions to write to the "Program Files" folder.
+
+2. By default, all installations run using MSIEXEC will attempt to perform an
+   installation for the current user: this means registry changes will be
+   made under HKEY_CURRENT_USER rather than HKEY_LOCAL_MACHINE. To install
+   for all users, use a command line of the form
+
+   msiexec /i launcher.msi ALLUSERS=1
+
+   This will attempt an all-users installation, which will fail if you don't
+   have administrator access. As an alternative, you can do
+
+   msiexec /i launcher.msi ALLUSERS=2
+
+   which will do an all-users installation (if you have administrator access)
+   or a per-user installation (if you don't).
+
 Usage
 -----
 

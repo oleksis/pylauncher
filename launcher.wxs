@@ -28,12 +28,16 @@
             <?define TheTarget = '[SystemFolder]' ?>
         <?endif ?>
     <?else ?>
+      <?ifdef ToWindows ?>
+        <?define TheTarget = '[WindowsFolder]' ?>
+      <?else ?>
         <?if $(var.Platform) = x64 ?>
             <?define PFF = 'ProgramFiles64Folder' ?>
         <?else ?>
             <?define PFF = 'ProgramFilesFolder' ?>
         <?endif ?>
         <?define TheTarget = '[$(var.PFF)][ProductName]' ?>
+      <?endif ?>
     <?endif ?>
 
     <CustomAction Id='set_target_dir' Return='check'

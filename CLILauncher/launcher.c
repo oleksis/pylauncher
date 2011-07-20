@@ -267,10 +267,10 @@ invalid binary type: %X\n",
                                         /* has spaces, so quote */
                                         n = wcslen(ip->executable);
                                         memmove(&ip->executable[1],
-                                                ip->executable, n);
+                                                ip->executable, n * sizeof(wchar_t));
                                         ip->executable[0] = L'\"';
                                         ip->executable[n + 1] = L'\"';
-                                        ip->executable[n + 1] = L'\0';
+                                        ip->executable[n + 2] = L'\0';
                                     }
                                     debug(L"locate_pythons_for_key: %s \
 is a %dbit executable\n",

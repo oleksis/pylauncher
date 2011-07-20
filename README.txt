@@ -56,13 +56,11 @@ launchsys.amd64.msi 64-bit launcher, installs to Windows\System32
 
 One advantage of the versions which install to the Windows System32 folder is
 that you can invoke the launcher itself more easily, using just "py" or "pyw",
-as the System32 folder is on the PATH. Note, however, that this won't work if
-you install the 32-bit launcher on a 64-bit system, which will correctly
-install the files to \Windows\SysWow64 - but this is not on the PATH.
-
-The 32-bit launchers, when run on a 64-bit system, won't be able to find any
-installed 64-bit Pythons. This is because 64-bit Windows redirects 32-bit
-registry accesses to a 32-bit-specific registry area.
+as the System32 folder is on the PATH. Note, however, that this probably won't
+work if you install the 32-bit launcher on a 64-bit system, which will 
+correctly install the files to \Windows\SysWow64 - but this only on the PATH
+for 32 bit processes so will not be on the default PATH for the default 64bit
+cmd.exe.
 
 User Permissions
 ----------------

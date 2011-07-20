@@ -153,10 +153,8 @@ static size_t num_installed_pythons = 0;
 
 static wchar_t * location_checks[] = {
     L"\\",
-/*
     L"\\PCBuild\\",
     L"\\PCBuild\\amd64\\",
- */
     NULL
 };
 
@@ -274,6 +272,9 @@ invalid binary type: %X\n",
                                         ip->executable[n + 1] = L'\"';
                                         ip->executable[n + 1] = L'\0';
                                     }
+                                    debug(L"locate_pythons_for_key: %s \
+is a %dbit executable\n",
+                                        ip->executable, ip->bits);
                                     ++num_installed_pythons;
                                     pip = ip++;
                                     if (num_installed_pythons >=
@@ -309,14 +310,23 @@ static void
 locate_all_pythons()
 {
 #if defined(_M_X64)
-    locate_pythons_for_key(HKEY_CURRENT_USER, KEY_READ | KEY_WOW64_64KEY);
-    locate_pythons_for_key(HKEY_LOCAL_MACHINE, KEY_READ | KEY_WOW64_64KEY);
+    // If we are a 64bit process, first hit the 32bit keys.
+    debug(L"locating Pythons in 32bit registry\n");
     locate_pythons_for_key(HKEY_CURRENT_USER, KEY_READ | KEY_WOW64_32KEY);
     locate_pythons_for_key(HKEY_LOCAL_MACHINE, KEY_READ | KEY_WOW64_32KEY);
 #else
+    // If we are a 32bit process on a 64bit Windows, first hit the 64bit keys.
+    BOOL f64 = FALSE;
+    if (IsWow64Process(GetCurrentProcess(), &f64) && f64) {
+        debug(L"locating Pythons in 64bit registry\n");
+        locate_pythons_for_key(HKEY_CURRENT_USER, KEY_READ | KEY_WOW64_64KEY);
+        locate_pythons_for_key(HKEY_LOCAL_MACHINE, KEY_READ | KEY_WOW64_64KEY);
+    }
+#endif    
+    // now hit the "native" key for this process bittedness.
+    debug(L"locating Pythons in native registry\n");
     locate_pythons_for_key(HKEY_CURRENT_USER, KEY_READ);
     locate_pythons_for_key(HKEY_LOCAL_MACHINE, KEY_READ);
-#endif
     qsort(installed_pythons, num_installed_pythons, sizeof(INSTALLED_PYTHON),
           compare_pythons);
 }

@@ -5,6 +5,7 @@ if sys.version_info[0] < 3:
 
 import ctypes
 import os
+import os.path
 import shutil
 import subprocess
 import tempfile
@@ -42,8 +43,8 @@ SHEBANGS = {
 COMMENT_WITH_UNICODE = '# Libert\xe9, \xe9galit\xe9, fraternit\xe9\n'
 
 VIRT_PATHS = [
-    "/usr/bin/env ",
-    "/usr/bin/",
+    '/usr/bin/env ',
+    '/usr/bin/',
 ]
 
 class VirtualPath: # think a C struct...
@@ -60,8 +61,8 @@ def is_64_bit_os():
     return i.value
 
 def locate_pythons_for_key(root, flags, infos):
-    executable = "pythonw.exe" if IS_W else "python.exe"
-    python_path = r"SOFTWARE\Python\PythonCore"
+    executable = 'pythonw.exe' if IS_W else 'python.exe'
+    python_path = r'SOFTWARE\Python\PythonCore'
     try:
         core_root = winreg.OpenKeyEx(root, python_path, 0, flags)
     except WindowsError:
@@ -74,7 +75,7 @@ def locate_pythons_for_key(root, flags, infos):
             except WindowsError:
                 break
             try:
-                ip_path = python_path + "\\" + verspec + "\\" + "InstallPath"
+                ip_path = python_path + '\\' + verspec + '\\' + 'InstallPath'
                 key_installed_path = winreg.OpenKeyEx(root, ip_path, 0, flags)
                 try:
                     install_path, typ = winreg.QueryValueEx(key_installed_path,
@@ -82,10 +83,10 @@ def locate_pythons_for_key(root, flags, infos):
                 finally:
                     winreg.CloseKey(key_installed_path)
                 if typ==winreg.REG_SZ:
-                    for check in ["", "pcbuild", "pcbuild/amd64"]:
+                    for check in ['', 'pcbuild', 'pcbuild/amd64']:
                         maybe = os.path.join(install_path, check, executable)
                         if os.path.isfile(maybe):
-                            if " " in maybe:
+                            if ' ' in maybe:
                                 maybe = '"' + maybe + '"'
                             infos.append(VirtualPath(verspec, 32, maybe))
                             #debug("found version %s at '%s'" % (verspec, maybe))
@@ -140,30 +141,29 @@ def locate_python(spec):
     if len(spec)==1:
         # just a major version was specified - see if the environment
         # has a default for that version.
-        spec = os.environ.get("PY_DEFAULT_PYTHON"+spec, spec)
+        spec = os.environ.get('PY_DEFAULT_PYTHON'+spec, spec)
     if spec:
         return locate_python_ver(spec)
     # No python spec - see if the environment has a default.
-    spec = os.environ.get("PY_DEFAULT_PYTHON")
+    spec = os.environ.get('PY_DEFAULT_PYTHON')
     if spec:
         return locate_python_ver(spec)
     # hrmph - still no spec - prefer python 2 if installed.
-    ret = locate_python_ver("2")
+    ret = locate_python_ver('2')
     if ret is None:
-        ret = locate_python_ver("3")
+        ret = locate_python_ver('3')
     # may still be none, but we are out of search options.
     return ret
 
-DEFAULT_PYTHON2 = locate_python("2")
+DEFAULT_PYTHON2 = locate_python('2')
 assert DEFAULT_PYTHON2, "You don't appear to have Python 2 installed"
 
-DEFAULT_PYTHON3 = locate_python("3")
+DEFAULT_PYTHON3 = locate_python('3')
 assert DEFAULT_PYTHON3, "You don't appear to have Python 3 installed"
 
 def update_for_installed_pythons(*pythons):
     for python in pythons:
         python.bversion = python.version.encode('ascii')
-        # Assuming the default installation directory name is used
         python.dir = 'Python%s' % python.version.replace('.', '')
         python.bdir = python.dir.encode('ascii')
         python.output_version = b'Python ' + python.bversion
@@ -332,9 +332,9 @@ class ConfiguredScriptMaker(ScriptMaker):
         ScriptMaker.tearDown(self)
 
 LOCAL_INI = '''[commands]
-h3 = c:\{p3.dir}\python --help
-v3 =c:\{p3.dir}\python --version
-v2a= c:\{p2.dir}\python -v
+h3  = {p3.executable} --help
+v3  = {p3.executable} --version
+v2a = {p2.executable} -v
 
 [defaults]
 python=3
@@ -342,11 +342,11 @@ python3={p3.version}
 '''.format(p2=DEFAULT_PYTHON2, p3=DEFAULT_PYTHON3)
 
 GLOBAL_INI = '''[commands]
-h2=c:\{p2.dir}\python -h
-h3 = c:\{p3.dir}\python -h
-v2= c:\{p2.dir}\python -V
-v3 =c:\{p3.dir}\python -V
-v3a = c:\{p3.dir}\python -v
+h2  = {p2.executable} -h
+h3  = {p3.executable} -h
+v2  = {p2.executable} -V
+v3  = {p3.executable} -V
+v3a = {p3.executable} -v
 shell = cmd /c
 
 [defaults]

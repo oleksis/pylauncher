@@ -188,9 +188,11 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
     wchar_t ip_path[IP_SIZE];
     wchar_t * check;
     wchar_t ** checkp;
+    wchar_t *key_name = (root == HKEY_LOCAL_MACHINE) ? L"HKLM" : L"HKCU";
 
     if (status != ERROR_SUCCESS)
-        debug(L"locate_pythons_for_key: unable to open PythonCore key\n");
+        debug(L"locate_pythons_for_key: unable to open PythonCore key in %s\n",
+              key_name);
     else {
         ip = &installed_pythons[num_installed_pythons];
         for (i = 0; num_installed_pythons < MAX_INSTALLED_PYTHONS; i++) {
@@ -199,7 +201,8 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
                 if (status != ERROR_NO_MORE_ITEMS) {
                     /* unexpected error */
                     winerror(status, message, MSGSIZE);
-                    debug(L"%s\n", message);
+                    debug(L"can't enumerate registry key for version %s: %s\n",
+                          ip->version, message);
                 }
                 break;
             }
@@ -209,7 +212,8 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
                 status = RegOpenKeyExW(root, ip_path, 0, flags, &ip_key);
                 if (status != ERROR_SUCCESS) {
                     winerror(status, message, MSGSIZE);
-                    debug(L"%s: %s\n", message, ip_path);
+                    // Note: 'message' already has a trailing \n
+                    debug(L"%s\\%s: %s", key_name, ip_path, message);
                     continue;
                 }
                 data_size = sizeof(ip->executable) - 1;
@@ -218,7 +222,7 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
                 RegCloseKey(ip_key);
                 if (status != ERROR_SUCCESS) {
                     winerror(status, message, MSGSIZE);
-                    debug(L"%s: %s\n", message, ip_path);
+                    debug(L"%s\\%s: %s\n", key_name, ip_path, message);
                     continue;
                 }
                 if (type == REG_SZ) {
@@ -233,10 +237,15 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
                                      MAX_PATH - data_size,
                                      L"%s%s", check, PYTHON_EXECUTABLE);
                         attrs = GetFileAttributesW(ip->executable);
-                        if ((attrs == INVALID_FILE_ATTRIBUTES) ||
-                            (attrs & FILE_ATTRIBUTE_DIRECTORY)) {
-                            debug(L"locate_pythons_for_key: %s: invalid file \
-attributes: %X\n",
+                        if (attrs == INVALID_FILE_ATTRIBUTES) {
+                            wchar_t message[MSGSIZE];
+                            winerror(GetLastError(), message, MSGSIZE);
+                            debug(L"locate_pythons_for_key: %s: %s",
+                                  ip->executable, message);
+                        }
+                        else if (attrs & FILE_ATTRIBUTE_DIRECTORY) {
+                            debug(L"locate_pythons_for_key: '%s' is a \
+directory\n",
                                   ip->executable, attrs);
                         }
                         else if (find_existing_python(ip->executable)) {
@@ -368,12 +377,13 @@ static wchar_t *
 get_configured_value(wchar_t * key)
 {
 /*
- * Note: this static value is used to return a configrued value
+ * Note: this static value is used to return a configured value
  * obtained either from the environment or configuration file.
  * This should be OK since there wouldn't be any concurrent calls.
  */
     static wchar_t configured_value[MSGSIZE];
     wchar_t * result = NULL;
+    wchar_t * found_in = L"environment";
     DWORD size;
 
     /* First, search the environment. */
@@ -385,17 +395,27 @@ get_configured_value(wchar_t * key)
             size = GetPrivateProfileStringW(L"defaults", key, NULL,
                                             configured_value, MSGSIZE,
                                             appdata_ini_path);
-            if (size > 0)
+            if (size > 0) {
                 result = configured_value;
+                found_in = appdata_ini_path;
+            }
             else if (launcher_ini_path[0]) {
                 /* Not in environment or local: check global configuration. */
                 size = GetPrivateProfileStringW(L"defaults", key, NULL,
                                                 configured_value, MSGSIZE,
                                                 launcher_ini_path);
-                if (size > 0)
+                if (size > 0) {
                     result = configured_value;
+                    found_in = launcher_ini_path;
+                }
             }
         }
+    }
+    if (result) {
+        debug(L"found configured value '%s=%s' in %s\n",
+              key, result, found_in ? found_in : L"(unknown)");
+    } else {
+        debug(L"found no configured value for '%s'\n", key);
     }
     return result;
 }
@@ -419,8 +439,15 @@ locate_python(wchar_t * wanted_ver)
         if (configured_value != NULL)
             wanted_ver = configured_value;
     }
-    if (*wanted_ver)
+    if (*wanted_ver) {
         result = find_python_by_version(wanted_ver);
+        debug(L"search for Python version '%s' found ", wanted_ver);
+        if (result) {
+            debug(L"'%s'\n", result->executable);
+        } else {
+            debug(L"no interpreter\n");
+        }
+    }
     else {
         *last_char = L'\0'; /* look for an overall default */
         configured_value = get_configured_value(config_key);
@@ -430,6 +457,13 @@ locate_python(wchar_t * wanted_ver)
             result = find_python_by_version(L"2");
         if (result == NULL)
             result = find_python_by_version(L"3");
+        debug(L"search for default Python found ");
+        if (result) {
+            debug(L"version %s at '%s'\n",
+                  result->version, result->executable);
+        } else {
+            debug(L"no interpreter\n");
+        }
     }
     return result;
 }
@@ -882,8 +916,11 @@ maybe_handle_shebang(wchar_t ** argv, wchar_t * cmdline)
 
         if ((read >= 4) && (buffer[3] == '\n') && (buffer[2] == '\r')) {
             ip = find_by_magic((buffer[1] << 8 | buffer[0]) & 0xFFFF);
-            if (ip != NULL)
+            if (ip != NULL) {
+                debug(L"script file is compiled against Python %s\n",
+                      ip->version);
                 invoke_child(ip->executable, NULL, cmdline);
+            }
         }
         /* Look for BOM */
         bom = find_BOM(buffer);
@@ -1106,6 +1143,8 @@ process(int argc, wchar_t ** argv)
         if (attrs == INVALID_FILE_ATTRIBUTES) {
             debug(L"File '%s' non-existent\n", appdata_ini_path);
             appdata_ini_path[0] = L'\0';
+        } else {
+            debug(L"Using local configuration file '%s'\n", appdata_ini_path);
         }
     }
     plen = GetModuleFileNameW(NULL, launcher_ini_path, MAX_PATH);
@@ -1147,6 +1186,8 @@ process(int argc, wchar_t ** argv)
         if (attrs == INVALID_FILE_ATTRIBUTES) {
             debug(L"File '%s' non-existent\n", launcher_ini_path);
             launcher_ini_path[0] = L'\0';
+        } else {
+            debug(L"Using global configuration file '%s'\n", launcher_ini_path);
         }
     }
 

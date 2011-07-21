@@ -1,0 +1,23 @@
+;
+; This is an example of how a Python Launcher .ini file is structured.
+; If you want to use it, copy it to py.ini and make your changes there,
+; after removing this header comment.
+; This file will be removed on launcher uninstallation and overwritten
+; when the launcher is installed or upgraded, so don't edit this file
+; as your changes will be lost.
+;
+[defaults]
+; Uncomment out the following line to have Python 3 be the default.
+;python=3
+
+[commands]
+; Put in any customised commands you want here, in the format
+; that's shown in the example line. You only need quotes around the
+; executable if the path has spaces in it.
+;
+; You can then use e.g. #!myprog as your shebang line in scripts, and
+; the launcher would invoke e.g.
+;
+; "c:\Program Files\MyCustom.exe" -a -b -c myscript.py
+;
+;myprog="c:\Program Files\MyCustom.exe" -a -b -c

@@ -389,26 +389,24 @@ get_configured_value(wchar_t * key)
     /* First, search the environment. */
     _snwprintf_s(configured_value, MSGSIZE, _TRUNCATE, L"py_%s", key);
     result = get_env(configured_value);
-    if (result == NULL) {
+    if (result == NULL && appdata_ini_path[0]) {
         /* Not in environment: check local configuration. */
-        if (appdata_ini_path[0]) {
-            size = GetPrivateProfileStringW(L"defaults", key, NULL,
-                                            configured_value, MSGSIZE,
-                                            appdata_ini_path);
-            if (size > 0) {
-                result = configured_value;
-                found_in = appdata_ini_path;
-            }
-            else if (launcher_ini_path[0]) {
-                /* Not in environment or local: check global configuration. */
-                size = GetPrivateProfileStringW(L"defaults", key, NULL,
-                                                configured_value, MSGSIZE,
-                                                launcher_ini_path);
-                if (size > 0) {
-                    result = configured_value;
-                    found_in = launcher_ini_path;
-                }
-            }
+        size = GetPrivateProfileStringW(L"defaults", key, NULL,
+                                        configured_value, MSGSIZE,
+                                        appdata_ini_path);
+        if (size > 0) {
+            result = configured_value;
+            found_in = appdata_ini_path;
+        }
+    }
+    if (result == NULL && launcher_ini_path[0]) {
+        /* Not in environment or local: check global configuration. */
+        size = GetPrivateProfileStringW(L"defaults", key, NULL,
+                                        configured_value, MSGSIZE,
+                                        launcher_ini_path);
+        if (size > 0) {
+            result = configured_value;
+            found_in = launcher_ini_path;
         }
     }
     if (result) {

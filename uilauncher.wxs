@@ -1,0 +1,112 @@
+<?xml version='1.0'?>
+<?if $(var.Platform) = x64 ?>
+  <?define ProdCode = '1CB6C42B-5887-47CF-AF21-988256F0455B' ?>
+  <?define ProdName = 'Python Launcher (64-bit)' ?>
+  <?define BinDir = 'x64\Release' ?>
+  <?define CompGuid = '46BCEFDD-EAFE-49A8-9FCB-27371AAC7ABD' ?>
+<?else ?>
+  <?define ProdCode = '298B5D62-1287-427F-B8D9-B44D605F8F6B' ?>
+  <?define ProdName = 'Python Launcher' ?>
+  <?define BinDir = 'Release' ?>
+  <?define CompGuid = '13D8FC31-04E9-4AC9-AE0B-E28F61DE99B9' ?>
+<?endif ?>
+<?define HelpGuid = 'DA1DD47F-04F7-4BA0-844B-BB3356353D1F' ?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+  <Product Id='$(var.ProdCode)' Name='$(var.ProdName)' Language='1033'
+           Version='$(var.Version)' Manufacturer='$(var.Manufacturer)'
+           UpgradeCode='36B0A82E-0B4E-47CD-895B-FD4EC726B3AC'>
+    <Package Description='Python Launcher facilitates running Python files on Windows.'
+             Comments='This is a standalone version of the Python Launcher'
+             Manufacturer='$(var.Manufacturer)' InstallerVersion='200' Compressed='yes'
+             Platform='$(var.Platform)' />
+
+    <Media Id='1' Cabinet='launcher.cab' EmbedCab='yes' />
+ 
+    <?ifdef ToSystem ?>
+        <?if $(var.Platform) = x64 ?>
+            <?define TheTarget = '[System64Folder]' ?>
+        <?else ?>
+            <?define TheTarget = '[SystemFolder]' ?>
+        <?endif ?>
+    <?else ?>
+      <?ifdef ToWindows ?>
+        <?define TheTarget = '[WindowsFolder]' ?>
+      <?else ?>
+        <?if $(var.Platform) = x64 ?>
+            <?define PFF = 'ProgramFiles64Folder' ?>
+        <?else ?>
+            <?define PFF = 'ProgramFilesFolder' ?>
+        <?endif ?>
+        <?define TheTarget = '[$(var.PFF)][ProductName]' ?>
+      <?endif ?>
+    <?endif ?>
+
+    <CustomAction Id='set_target_dir' Return='check'
+                  Property='TARGETDIR' Value='$(var.TheTarget)'/>
+
+    <Binary Id='associator' SourceFile='$(var.BinDir)\Associator.exe'/>
+    <Binary Id='messager' SourceFile='$(var.BinDir)\Messager.exe'/>
+
+    <CustomAction Id='associate' BinaryKey='associator' Impersonate='no'
+                  Execute='immediate' ExeCommand='' Return='ignore'/>
+
+    <CustomAction Id='notify_success' BinaryKey='messager' Impersonate='yes'
+                  Execute='immediate'
+                  ExeCommand='40~Python Launcher was successfully installed.~Installation Status~3000'
+                  Return='ignore'/>
+
+    <InstallExecuteSequence>
+      <Custom Action='set_target_dir' Before='CostFinalize'/>
+      <Custom Action='associate' After='InstallFinalize'>REMOVE ~= "ALL"</Custom>
+      <Custom Action='notify_success' After='InstallFinalize'>NOT Installed</Custom>
+    </InstallExecuteSequence>
+
+    <Directory Id='TARGETDIR' Name='SourceDir'/>
+
+    <DirectoryRef Id='TARGETDIR'>
+        <Component Id='launcher' Guid='$(var.CompGuid)'>
+          <File Id='py' Name='py.exe' Source='$(var.BinDir)\py.exe' />
+          <File Id='pyw' Name='pyw.exe' Source='$(var.BinDir)\pyw.exe' />
+          <File Id='ini' Name='py.ini.template' Source='py.ini.template' />
+          <ProgId Id='Python.File' Description='Python File'
+                  Icon='py' IconIndex='1'>
+            <Extension Id='py'>
+              <Verb Id='open' Command='Open' TargetFile='py' Argument='"%1" %*'/>
+            </Extension>
+          </ProgId>
+          <ProgId Id='Python.NoConFile' Description='Python File (no console)'
+                  Icon='py' IconIndex='1'>
+            <Extension Id='pyw'>
+              <Verb Id='open' Command='Open' TargetFile='pyw' Argument='"%1" %*'/>
+            </Extension>
+          </ProgId>
+          <ProgId Id='Python.CompiledFile' Description='Compiled Python File'
+                  Icon='py' IconIndex='2'>
+            <Extension Id='pyc'>
+              <Verb Id='open' Command='Open' TargetFile='py' Argument='"%1" %*'/>
+            </Extension>
+            <Extension Id='pyo'>
+              <!-- No Verb needed here, as it's associated with ProgId
+                   and not the extension, and the same launcher
+                   is used. -->
+            </Extension>
+          </ProgId>
+        </Component>
+        <Component Id='htmldoc' Guid='$(var.HelpGuid)'>
+          <File Id='html' Name='py.html' Source='Doc/launcher.html'/>
+        </Component>
+    </DirectoryRef>
+
+    <Feature Id='launcher_feature' Level='1' Title='Launcher binary files (required)'
+             Absent='disallow'
+             Description='This is the set of launcher executables (one console mode, and one Windows mode application) and a configuration template.'>
+      <ComponentRef Id='launcher'/>
+    </Feature>
+    <Feature Id='launcher_doc' Level='1' Title='Launcher HTML documentation'
+            Description='This is a single HTML file which will reside next to the launcher executables.'>
+      <ComponentRef Id='htmldoc'/>
+    </Feature>
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+    <UIRef Id="WixUI_FeatureTree" />
+  </Product>
+</Wix>

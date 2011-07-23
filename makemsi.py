@@ -22,6 +22,8 @@ def invoke(command):
 def main(args=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', dest='output')
+    parser.add_argument('-x', dest='extensions', action='store_true',
+                        help='Use UI, Util extensions')
     parser.add_argument('options', nargs='*', metavar='OPTION',
                         help='An option in the form NAME or NAME=VALUE')
     parser.add_argument('wxsname', metavar='WXSNAME',
@@ -47,7 +49,12 @@ def main(args=None):
     if opts:
         opts = [ '-d%s' % opt for opt in opts]
     invoke(['candle'] + opts + [wxsfn])
-    invoke(['light', '-o', msifn, objfn])
+    light = ['light']
+    if cmdline.extensions:
+        light.extend(['-ext', 'WixUIExtension', '-ext', 'WixUtilExtension',
+                      '-cultures:en-us'])
+    light.extend(['-o', msifn, objfn])
+    invoke(light)
     os.remove(objfn)
     os.remove(pdbfn)
     return 0

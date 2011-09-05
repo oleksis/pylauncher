@@ -493,6 +493,12 @@ safe_duplicate_handle(HANDLE in, HANDLE * pout)
     return ok;
 }
 
+static BOOL WINAPI
+ctrl_c_handler(DWORD code)
+{
+    return TRUE;    /* We just ignore all control events. */
+}
+
 static void
 run_child(wchar_t * cmdline)
 {
@@ -526,8 +532,14 @@ run_child(wchar_t * cmdline)
     ok = safe_duplicate_handle(GetStdHandle(STD_ERROR_HANDLE), &si.hStdError);
     if (!ok)
         error(0, L"stderr duplication failed");
+
+    ok = SetConsoleCtrlHandler(ctrl_c_handler, TRUE);
+    if (!ok)
+        error(0, L"control handler setting failed");
+
     si.dwFlags = STARTF_USESTDHANDLES;
-    ok = CreateProcessW(NULL, cmdline, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi);
+    ok = CreateProcessW(NULL, cmdline, NULL, NULL, TRUE,
+                        0, NULL, NULL, &si, &pi);
     if (!ok)
         error(0, L"Unable to create process using '%s'", cmdline);
     AssignProcessToJobObject(job, pi.hProcess);

@@ -57,6 +57,9 @@ def main(args=None):
     invoke(light)
     os.remove(objfn)
     os.remove(pdbfn)
+    pwd = os.environ.get('SIGNPWD', '').strip()
+    if pwd:
+        invoke(['sign', '/d', 'Python Launcher Installer', msifn])
     return 0
 
 if __name__ == '__main__':

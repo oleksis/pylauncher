@@ -1231,18 +1231,29 @@ installed", &p[1]);
         if (ip == NULL)
             error(RC_NO_PYTHON, L"Can't find a default Python.");
         if ((argc == 2) && (!_wcsicmp(p, L"-h") || !_wcsicmp(p, L"--help"))) {
+#if defined(_M_X64)
+            BOOL canDo64bit = TRUE;
+#else
+    // If we are a 32bit process on a 64bit Windows, first hit the 64bit keys.
+            BOOL canDo64bit = FALSE;
+            IsWow64Process(GetCurrentProcess(), &canDo64bit);
+#endif
+
             get_version_info(version_text, MAX_PATH);
-            fwprintf(stdout, L"Python Launcher for Windows Version %s\n\n",
-                     version_text);
-            fwprintf(stdout, L"usage: %s [ launcher-arguments ] script \
-[ script-arguments ]\n\n",
-                     argv[0]);
-            fputws(L"Launcher arguments:\n\n", stdout);
-            fputws(L"-2[.X]: launch using default or a specific Python 2.x \
-version\n", stdout);
-            fputws(L"-3[.X]: launch using default or a specific Python 3.x \
-version\n", stdout);
-            fputws(L"\nThe following help text is from Python:\n\n", stdout);
+            fwprintf(stdout, L"\
+Python Launcher for Windows Version %s\n\n", version_text);
+            fwprintf(stdout, L"\
+usage: %s [ launcher-arguments ] script [ script-arguments ]\n\n", argv[0]);
+            fputws(L"\
+Launcher arguments:\n\n\
+-2     : Launch the latest Python 2.x version\n\
+-3     : Launch the latest Python 3.x version\n\
+-X.Y   : Launch the specified Python version\n", stdout);
+            if (canDo64bit) {
+                fputws(L"\
+-X.Y-32: Launch the specified 32bit Python version", stdout);
+            }
+            fputws(L"\n\nThe following help text is from Python:\n", stdout);
             fflush(stdout);
         }
     }

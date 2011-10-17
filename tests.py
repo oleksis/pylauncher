@@ -251,6 +251,21 @@ class BasicTest(ScriptMaker, unittest.TestCase):
         self.assertTrue(stdout.startswith(b'Python Launcher for Windows'))
         self.assertIn(b'The following help text is from Python:\r\n\r\nusage: ', stdout)
 
+    def test_version_specifier(self):
+        """Test that files named like a version specifier do not get 
+        misinterpreted as a version specifier when it does not have a shebang."""
+        for nohyphen in ['t3', 'x2.6', '_3.1-32']:
+            with open(nohyphen, 'w') as f:
+                f.write('import sys\nprint(sys.version)\nprint(sys.argv)')
+            try:
+                script = self.make_script(shebang_line='')
+                p =  subprocess.Popen([LAUNCHER, nohyphen, script], 
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                stdout, stderr = p.communicate()
+                self.assertTrue(self.matches(stdout, DEFAULT_PYTHON2))
+            finally:
+                os.remove(nohyphen)
+ 
     # Tests with ASCII Python sources
     def test_shebang_ascii(self):
         "Test shebangs in ASCII files"

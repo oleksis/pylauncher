@@ -1216,7 +1216,7 @@ process(int argc, wchar_t ** argv)
         /* No file with shebang, or an unrecognised shebang.
          * Is the first arg a special version qualifier?
          */
-        valid = (*p == '-') && validate_version(&p[1]);
+        valid = (*p == L'-') && validate_version(&p[1]);
         if (valid) {
             ip = locate_python(&p[1]);
             if (ip == NULL)
@@ -1253,7 +1253,7 @@ Launcher arguments:\n\n\
                 fputws(L"\
 -X.Y-32: Launch the specified 32bit Python version", stdout);
             }
-            fputws(L"\n\nThe following help text is from Python:\n", stdout);
+            fputws(L"\n\nThe following help text is from Python:\n\n", stdout);
             fflush(stdout);
         }
     }

@@ -1216,7 +1216,7 @@ process(int argc, wchar_t ** argv)
         /* No file with shebang, or an unrecognised shebang.
          * Is the first arg a special version qualifier?
          */
-        valid = validate_version(&p[1]);
+        valid = (*p == '-') && validate_version(&p[1]);
         if (valid) {
             ip = locate_python(&p[1]);
             if (ip == NULL)

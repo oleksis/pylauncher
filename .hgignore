@@ -2,3 +2,4 @@ Debug/.*$
 Release/.*$
 Doc/.*\.html$
 \.(suo|ncb|user|aps|msi|msm|wix(obj|pdb))$
+__pycache__/

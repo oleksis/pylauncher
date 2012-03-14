@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 Vinay Sajip. All rights reserved.
+ * Copyright (C) 2011-2012 Vinay Sajip. All rights reserved.
  *
  *
  * Redistribution and use in source and binary forms, with or without
@@ -514,40 +514,40 @@ run_child(wchar_t * cmdline)
     ok = QueryInformationJobObject(job, JobObjectExtendedLimitInformation,
                                   &info, sizeof(info), &rc);
     if (!ok || (rc != sizeof(info)))
-        error(0, L"Job information querying failed");
+        error(RC_CREATE_PROCESS, L"Job information querying failed");
     info.BasicLimitInformation.LimitFlags |= JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE |
                                              JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK;
     ok = SetInformationJobObject(job, JobObjectExtendedLimitInformation, &info,
                                  sizeof(info));
     if (!ok)
-        error(0, L"Job information setting failed");
+        error(RC_CREATE_PROCESS, L"Job information setting failed");
     memset(&si, 0, sizeof(si));
     si.cb = sizeof(si);
     ok = safe_duplicate_handle(GetStdHandle(STD_INPUT_HANDLE), &si.hStdInput);
     if (!ok)
-        error(0, L"stdin duplication failed");
+        error(RC_NO_STD_HANDLES, L"stdin duplication failed");
     ok = safe_duplicate_handle(GetStdHandle(STD_OUTPUT_HANDLE), &si.hStdOutput);
     if (!ok)
-        error(0, L"stdout duplication failed");
+        error(RC_NO_STD_HANDLES, L"stdout duplication failed");
     ok = safe_duplicate_handle(GetStdHandle(STD_ERROR_HANDLE), &si.hStdError);
     if (!ok)
-        error(0, L"stderr duplication failed");
+        error(RC_NO_STD_HANDLES, L"stderr duplication failed");
 
     ok = SetConsoleCtrlHandler(ctrl_c_handler, TRUE);
     if (!ok)
-        error(0, L"control handler setting failed");
+        error(RC_CREATE_PROCESS, L"control handler setting failed");
 
     si.dwFlags = STARTF_USESTDHANDLES;
     ok = CreateProcessW(NULL, cmdline, NULL, NULL, TRUE,
                         0, NULL, NULL, &si, &pi);
     if (!ok)
-        error(0, L"Unable to create process using '%s'", cmdline);
+        error(RC_CREATE_PROCESS, L"Unable to create process using '%s'", cmdline);
     AssignProcessToJobObject(job, pi.hProcess);
     CloseHandle(pi.hThread);
     WaitForSingleObject(pi.hProcess, INFINITE);
     ok = GetExitCodeProcess(pi.hProcess, &rc);
     if (!ok)
-        error(0, L"Failed to get exit code of process");
+        error(RC_CREATE_PROCESS, L"Failed to get exit code of process");
     debug(L"child process exit code: %d\n", rc);
     ExitProcess(rc);
 }
@@ -574,7 +574,7 @@ invoke_child(wchar_t * executable, wchar_t * suffix, wchar_t * cmdline)
         }
         child_command = calloc(child_command_size, sizeof(wchar_t));
         if (child_command == NULL)
-            error(0, L"unable to allocate %d bytes for child command.",
+            error(RC_CREATE_PROCESS, L"unable to allocate %d bytes for child command.",
                   child_command_size);
         if (no_suffix)
             _snwprintf_s(child_command, child_command_size,

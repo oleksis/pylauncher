@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 Vinay Sajip. All rights reserved.
+ * Copyright (C) 2011-2012 Vinay Sajip. All rights reserved.
  *
  *
  * Redistribution and use in source and binary forms, with or without

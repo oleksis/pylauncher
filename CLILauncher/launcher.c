@@ -1139,8 +1139,9 @@ process(int argc, wchar_t ** argv)
 #else
     debug(L"launcher executable: Console\n");
 #endif
-
-    hr = SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL, 0, appdata_ini_path);
+    /* Get the local appdata folder (non-roaming) */
+    hr = SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA,
+                          NULL, 0, appdata_ini_path);
     if (hr != S_OK) {
         debug(L"SHGetFolderPath failed: %X\n", hr);
         appdata_ini_path[0] = L'\0';

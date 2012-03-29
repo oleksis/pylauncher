@@ -332,7 +332,7 @@ class ConfiguredScriptMaker(ScriptMaker):
     def setUp(self):
         ScriptMaker.setUp(self)
 
-        self.local_ini = path = os.path.join(os.environ['APPDATA'],
+        self.local_ini = path = os.path.join(os.environ['LOCALAPPDATA'],
                                                   'py.ini')
         self.local_config = read_data(path)
         self.global_ini = path = os.path.join(os.path.dirname(LAUNCHER),

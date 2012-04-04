@@ -86,7 +86,7 @@ winerror(int rc, wchar_t * message, int size)
         message, size, NULL);
 }
 
-static int
+static void
 error(int rc, wchar_t * format, ... )
 {
     va_list va;
@@ -238,7 +238,6 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
                                      L"%s%s", check, PYTHON_EXECUTABLE);
                         attrs = GetFileAttributesW(ip->executable);
                         if (attrs == INVALID_FILE_ATTRIBUTES) {
-                            wchar_t message[MSGSIZE];
                             winerror(GetLastError(), message, MSGSIZE);
                             debug(L"locate_pythons_for_key: %s: %s",
                                   ip->executable, message);
@@ -513,7 +512,7 @@ run_child(wchar_t * cmdline)
     job = CreateJobObject(NULL, NULL);
     ok = QueryInformationJobObject(job, JobObjectExtendedLimitInformation,
                                   &info, sizeof(info), &rc);
-    if (!ok || (rc != sizeof(info)))
+    if (!ok || (rc != sizeof(info)) || !job)
         error(RC_CREATE_PROCESS, L"Job information querying failed");
     info.BasicLimitInformation.LimitFlags |= JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE |
                                              JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK;
@@ -912,7 +911,7 @@ maybe_handle_shebang(wchar_t ** argv, wchar_t * cmdline)
     char * start;
     char * shebang_alias = (char *) shebang_line;
     BOM* bom;
-    int i, j, nchars;
+    int i, j, nchars = 0;
     int header_len;
     BOOL is_virt;
     wchar_t * command;
@@ -972,7 +971,7 @@ maybe_handle_shebang(wchar_t ** argv, wchar_t * cmdline)
                 if (header_len % 2 != 0) {
                     debug(L"maybe_handle_shebang: UTF-16BE, but an odd number \
 of bytes: %d\n", header_len);
-                    nchars = 0;
+                    /* nchars = 0; Not needed - initialised to 0. */
                 }
                 else {
                     for (i = header_len; i > 0; i -= 2) {
@@ -986,7 +985,7 @@ of bytes: %d\n", header_len);
                 if ((header_len % 2) != 0) {
                     debug(L"UTF-16LE, but an odd number of bytes: %d\n",
                           header_len);
-                    nchars = 0;
+                    /* nchars = 0; Not needed - initialised to 0. */
                 }
                 else {
                     /* no actual conversion needed. */
@@ -998,7 +997,7 @@ of bytes: %d\n", header_len);
                 if (header_len % 4 != 0) {
                     debug(L"UTF-32BE, but not divisible by 4: %d\n",
                           header_len);
-                    nchars = 0;
+                    /* nchars = 0; Not needed - initialised to 0. */
                 }
                 else {
                     for (i = header_len, j = header_len / 2; i > 0; i -= 4,
@@ -1013,7 +1012,7 @@ of bytes: %d\n", header_len);
                 if (header_len % 4 != 0) {
                     debug(L"UTF-32LE, but not divisible by 4: %d\n",
                           header_len);
-                    nchars = 0;
+                    /* nchars = 0; Not needed - initialised to 0. */
                 }
                 else {
                     for (i = header_len, j = header_len / 2; i > 0; i -= 4,

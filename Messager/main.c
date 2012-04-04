@@ -105,7 +105,7 @@ int WINAPI wWinMain(HINSTANCE hInstance,
                    LPWSTR lpCmdLine, int nShow)
 {
     wchar_t line[MSGSIZE];
-    wchar_t * context;
+    wchar_t * context = NULL;
     wchar_t * tokens[MAX_TOKENS];
     int i;
     UINT icon;

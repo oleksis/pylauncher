@@ -603,7 +603,7 @@ found at '%s'", ip->version, ip->executable);
             NMLISTVIEW * p = (NMLISTVIEW *) lParam;
 
             if ((p->hdr.code == LVN_ITEMCHANGED) &&
-                (p->uNewState && LVIS_SELECTED)) {
+                (p->uNewState & LVIS_SELECTED)) {
                 hChild = GetDlgItem(hDlg, IDOK);
                 selected_index = p->iItem;
                 EnableWindow(hChild, selected_index >= 0);
@@ -642,6 +642,10 @@ int WINAPI wWinMain(HINSTANCE hInstance,
         fopen_s(&log_fp, "c:\\temp\\associator.log", "w");
     }
 
+    if (!lpCmdLine) {
+        debug(L"No command line specified.\n");
+        return 0;
+    }
     if (!wcsstr(lpCmdLine, L"nocheck") &&
         associations_exist())   /* Could have been restored by uninstall. */
         return 0;

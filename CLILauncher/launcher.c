@@ -608,6 +608,33 @@ typedef struct {
 static COMMAND commands[MAX_COMMANDS];
 static int num_commands = 0;
 
+static wchar_t * builtin_prefixes [] = {
+    /* These must be in an order that the longest matches should be found,
+     * i.e. if the prefix is "/usr/bin/env ", it should match that entry
+     * *before* matching "/usr/bin/".
+     */
+    L"/usr/bin/env ",
+    L"/usr/bin/",
+    L"/usr/local/bin/",
+    NULL
+};
+
+static wchar_t * skip_prefix(wchar_t * name)
+{
+    wchar_t ** pp = builtin_prefixes;
+    wchar_t * result = name;
+    size_t n;
+
+    for (; *pp; pp++) {
+        n = wcslen(*pp);
+        if (_wcsnicmp(*pp, name, n) == 0) {
+            result += n;   /* skip the prefix */
+            break;
+        }
+    }
+    return result;
+}
+
 static COMMAND * find_command(wchar_t * name)
 {
     COMMAND * result = NULL;
@@ -693,6 +720,7 @@ parse_shebang(wchar_t * shebang_line, int nchars, wchar_t ** command,
     wchar_t zapped;
     wchar_t * endp = shebang_line + nchars - 1;
     COMMAND * cp;
+    wchar_t * skipped;
 
     *command = NULL;    /* failure return */
     *suffix = NULL;
@@ -721,12 +749,13 @@ parse_shebang(wchar_t * shebang_line, int nchars, wchar_t ** command,
                  * stick a NUL after the command while searching for it,
                  * then put back the char we zapped.
                  */
-                p = wcspbrk(shebang_line, L" \t\r\n");
+                skipped = skip_prefix(shebang_line);
+                p = wcspbrk(skipped, L" \t\r\n");
                 if (p != NULL) {
                     zapped = *p;
                     *p = L'\0';
                 }
-                cp = find_command(shebang_line);
+                cp = find_command(skipped);
                 if (p != NULL)
                     *p = zapped;
                 if (cp != NULL) {

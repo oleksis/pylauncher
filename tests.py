@@ -44,6 +44,7 @@ COMMENT_WITH_UNICODE = '# Libert\xe9, \xe9galit\xe9, fraternit\xe9\n'
 
 VIRT_PATHS = [
     '/usr/bin/env ',
+    '/usr/bin/env  ', # test extra whitespace before command
     '/usr/bin/',
     '/usr/local/bin/',
     '',

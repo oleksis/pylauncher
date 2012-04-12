@@ -623,12 +623,15 @@ static wchar_t * skip_prefix(wchar_t * name)
 {
     wchar_t ** pp = builtin_prefixes;
     wchar_t * result = name;
+    wchar_t * p;
     size_t n;
 
-    for (; *pp; pp++) {
-        n = wcslen(*pp);
-        if (_wcsnicmp(*pp, name, n) == 0) {
+    for (; p = *pp; pp++) {
+        n = wcslen(p);
+        if (_wcsnicmp(p, name, n) == 0) {
             result += n;   /* skip the prefix */
+            if (p[n - 1] == L' ') /* No empty strings in table, so n > 1 */
+                result = skip_whitespace(result);
             break;
         }
     }

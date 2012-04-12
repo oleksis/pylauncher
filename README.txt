@@ -101,6 +101,13 @@ indicate a specific Python to run it with:
 #!python3   -> the most recent Python 3.x
 #!python3.2 -> Python 3.2 (an error will be raised if that's not installed)
 
+Basic Documentation
+-------------------
+
+Basic documentation in ReStructuredText format can be found at
+
+https://bitbucket.org/vinay.sajip/pylauncher/raw/tip/Doc/launcher.rst
+
 Software Status
 ---------------
 

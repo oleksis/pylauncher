@@ -201,7 +201,7 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
                 if (status != ERROR_NO_MORE_ITEMS) {
                     /* unexpected error */
                     winerror(status, message, MSGSIZE);
-                    debug(L"can't enumerate registry key for version %s: %s\n",
+                    debug(L"Can't enumerate registry key for version %s: %s\n",
                           ip->version, message);
                 }
                 break;
@@ -1072,12 +1072,14 @@ of bytes: %d\n", header_len);
                             suffix = skip_whitespace(suffix);
                         }
                         if (wcsncmp(command, L"python", 6))
-                            error(RC_BAD_VIRTUAL_PATH, L"unknown virtual \
+                            error(RC_BAD_VIRTUAL_PATH, L"Unknown virtual \
 path '%s'", command);
                         command += 6;   /* skip past "python" */
                         if (*command && !validate_version(command))
-                            error(RC_BAD_VIRTUAL_PATH, L"invalid version \
-specification: '%s'", command);
+                            error(RC_BAD_VIRTUAL_PATH, L"Invalid version \
+specification: '%s'.\nIn the first line of the script, 'python' needs to be \
+followed by a valid version specifier.\nPlease check the documentation.",
+                                  command);
                         /* TODO could call validate_version(command) */
                         ip = locate_python(command);
                         if (ip == NULL) {

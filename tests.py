@@ -44,7 +44,10 @@ COMMENT_WITH_UNICODE = '# Libert\xe9, \xe9galit\xe9, fraternit\xe9\n'
 
 VIRT_PATHS = [
     '/usr/bin/env ',
+    '/usr/bin/env  ', # test extra whitespace before command
     '/usr/bin/',
+    '/usr/local/bin/',
+    '',
 ]
 
 class VirtualPath: # think a C struct...
@@ -406,16 +409,18 @@ class ConfigurationTest(ConfiguredScriptMaker, unittest.TestCase):
         self.assertIn(DEFAULT_PYTHON2.bdir, stdout)
 
         # Python 3 version
-        shebang = '#!v3\n'
-        path = self.make_script(shebang_line=shebang)
-        stdout, stderr = self.run_child(path)
-        self.assertTrue(stderr.startswith(DEFAULT_PYTHON3.output_version))
+        for prefix in VIRT_PATHS:
+            shebang = '#!%sv3\n' % prefix
+            path = self.make_script(shebang_line=shebang)
+            stdout, stderr = self.run_child(path)
+            self.assertTrue(stderr.startswith(DEFAULT_PYTHON3.output_version))
 
         # Python 2 version
-        shebang = '#!v2\n'
-        path = self.make_script(shebang_line=shebang)
-        stdout, stderr = self.run_child(path)
-        self.assertTrue(stderr.startswith(DEFAULT_PYTHON2.output_version))
+        for prefix in VIRT_PATHS:
+            shebang = '#!%sv2\n' % prefix
+            path = self.make_script(shebang_line=shebang)
+            stdout, stderr = self.run_child(path)
+            self.assertTrue(stderr.startswith(DEFAULT_PYTHON2.output_version))
 
         VERBOSE_START = b'# installing zipimport hook'
 

@@ -201,7 +201,7 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
                 if (status != ERROR_NO_MORE_ITEMS) {
                     /* unexpected error */
                     winerror(status, message, MSGSIZE);
-                    debug(L"can't enumerate registry key for version %s: %s\n",
+                    debug(L"Can't enumerate registry key for version %s: %s\n",
                           ip->version, message);
                 }
                 break;
@@ -608,6 +608,36 @@ typedef struct {
 static COMMAND commands[MAX_COMMANDS];
 static int num_commands = 0;
 
+static wchar_t * builtin_prefixes [] = {
+    /* These must be in an order that the longest matches should be found,
+     * i.e. if the prefix is "/usr/bin/env ", it should match that entry
+     * *before* matching "/usr/bin/".
+     */
+    L"/usr/bin/env ",
+    L"/usr/bin/",
+    L"/usr/local/bin/",
+    NULL
+};
+
+static wchar_t * skip_prefix(wchar_t * name)
+{
+    wchar_t ** pp = builtin_prefixes;
+    wchar_t * result = name;
+    wchar_t * p;
+    size_t n;
+
+    for (; p = *pp; pp++) {
+        n = wcslen(p);
+        if (_wcsnicmp(p, name, n) == 0) {
+            result += n;   /* skip the prefix */
+            if (p[n - 1] == L' ') /* No empty strings in table, so n > 1 */
+                result = skip_whitespace(result);
+            break;
+        }
+    }
+    return result;
+}
+
 static COMMAND * find_command(wchar_t * name)
 {
     COMMAND * result = NULL;
@@ -693,6 +723,7 @@ parse_shebang(wchar_t * shebang_line, int nchars, wchar_t ** command,
     wchar_t zapped;
     wchar_t * endp = shebang_line + nchars - 1;
     COMMAND * cp;
+    wchar_t * skipped;
 
     *command = NULL;    /* failure return */
     *suffix = NULL;
@@ -721,12 +752,13 @@ parse_shebang(wchar_t * shebang_line, int nchars, wchar_t ** command,
                  * stick a NUL after the command while searching for it,
                  * then put back the char we zapped.
                  */
-                p = wcspbrk(shebang_line, L" \t\r\n");
+                skipped = skip_prefix(shebang_line);
+                p = wcspbrk(skipped, L" \t\r\n");
                 if (p != NULL) {
                     zapped = *p;
                     *p = L'\0';
                 }
-                cp = find_command(shebang_line);
+                cp = find_command(skipped);
                 if (p != NULL)
                     *p = zapped;
                 if (cp != NULL) {
@@ -1040,12 +1072,14 @@ of bytes: %d\n", header_len);
                             suffix = skip_whitespace(suffix);
                         }
                         if (wcsncmp(command, L"python", 6))
-                            error(RC_BAD_VIRTUAL_PATH, L"unknown virtual \
+                            error(RC_BAD_VIRTUAL_PATH, L"Unknown virtual \
 path '%s'", command);
                         command += 6;   /* skip past "python" */
                         if (*command && !validate_version(command))
-                            error(RC_BAD_VIRTUAL_PATH, L"invalid version \
-specification: '%s'", command);
+                            error(RC_BAD_VIRTUAL_PATH, L"Invalid version \
+specification: '%s'.\nIn the first line of the script, 'python' needs to be \
+followed by a valid version specifier.\nPlease check the documentation.",
+                                  command);
                         /* TODO could call validate_version(command) */
                         ip = locate_python(command);
                         if (ip == NULL) {

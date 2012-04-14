@@ -37,6 +37,10 @@
 #define BUFSIZE 256
 #define MSGSIZE 1024
 
+/* Build options. */
+#define SKIP_PREFIX
+#define SEARCH_PATH
+
 /* Just for now - static definition */
 
 static FILE * log_fp = NULL;
@@ -608,6 +612,8 @@ typedef struct {
 static COMMAND commands[MAX_COMMANDS];
 static int num_commands = 0;
 
+#if defined(SKIP_PREFIX)
+
 static wchar_t * builtin_prefixes [] = {
     /* These must be in an order that the longest matches should be found,
      * i.e. if the prefix is "/usr/bin/env ", it should match that entry
@@ -638,6 +644,51 @@ static wchar_t * skip_prefix(wchar_t * name)
     return result;
 }
 
+#endif
+
+#if defined(SEARCH_PATH)
+
+static COMMAND path_command;
+
+static COMMAND * find_on_path(wchar_t * name)
+{
+    wchar_t * pathext;
+    size_t    varsize;
+    wchar_t * context = NULL;
+    wchar_t * extension;
+    COMMAND * result = NULL;
+    DWORD     len;
+    errno_t   rc;
+
+    wcscpy_s(path_command.key, MAX_PATH, name);
+    if (wcschr(name, L'.') != NULL) {
+        /* assume it has an extension. */
+        len = SearchPathW(NULL, name, NULL, MSGSIZE, path_command.value, NULL);
+        if (len) {
+            result = &path_command;
+        }
+    }
+    else {
+        /* No extension - search using registered extensions. */
+        rc = _wdupenv_s(&pathext, &varsize, L"PATHEXT");
+        if (rc == 0) {
+            extension = wcstok_s(pathext, L";", &context);
+            while (extension) {
+                len = SearchPathW(NULL, name, extension, MSGSIZE, path_command.value, NULL);
+                if (len) {
+                    result = &path_command;
+                    break;
+                }
+                extension = wcstok_s(NULL, L";", &context);
+            }
+            free(pathext);
+        }
+    }
+    return result;
+}
+
+#endif
+
 static COMMAND * find_command(wchar_t * name)
 {
     COMMAND * result = NULL;
@@ -650,6 +701,10 @@ static COMMAND * find_command(wchar_t * name)
             break;
         }
     }
+#if defined(SEARCH_PATH)
+    if (result == NULL)
+        result = find_on_path(name);
+#endif
     return result;
 }
 
@@ -752,7 +807,11 @@ parse_shebang(wchar_t * shebang_line, int nchars, wchar_t ** command,
                  * stick a NUL after the command while searching for it,
                  * then put back the char we zapped.
                  */
+#if defined(SKIP_PREFIX)
                 skipped = skip_prefix(shebang_line);
+#else
+                skipped = shebang_line;
+#endif
                 p = wcspbrk(skipped, L" \t\r\n");
                 if (p != NULL) {
                     zapped = *p;

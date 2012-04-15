@@ -39,7 +39,7 @@
 
 /* Build options. */
 #define SKIP_PREFIX
-#define SEARCH_PATH
+/* #define SEARCH_PATH */
 
 /* Just for now - static definition */
 
@@ -744,7 +744,7 @@ read_config_file(wchar_t * config_path)
     }
     key = keynames;
     while (*key) {
-        read = GetPrivateProfileString(L"commands", key, NULL, value, MSGSIZE,
+        read = GetPrivateProfileStringW(L"commands", key, NULL, value, MSGSIZE,
                                        config_path);
         if (read == MSGSIZE - 1) {
             debug(L"read_commands: %s: not enough space for %s\n",

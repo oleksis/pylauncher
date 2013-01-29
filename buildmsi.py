@@ -2,7 +2,7 @@ import getpass
 import os
 import sys
 
-VERSION = 'Version=1.0.0.9'
+VERSION = 'Version=1.0.1.0'
 MANUFACTURER = 'Manufacturer=Vinay Sajip'
 X86 = 'Platform=x86'
 X64 = 'Platform=x64'

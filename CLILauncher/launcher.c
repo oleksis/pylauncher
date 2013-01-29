@@ -55,21 +55,30 @@ skip_whitespace(wchar_t * p)
 }
 
 /*
- * This function is here to minimise Visual Studio
- * warnings about security implications of getenv, and to
- * treat blank values as if they are absent.
+ * This function is here to simplify memory management
+ * and to treat blank values as if they are absent.
  */
 static wchar_t * get_env(wchar_t * key)
 {
-    wchar_t * result = _wgetenv(key);
+    /* This is not thread-safe, just like getenv */
+    static wchar_t buf[256];
+    DWORD result = GetEnvironmentVariableW(key, buf, 256);
 
-    if (result) {
-        result = skip_whitespace(result);
-        if (*result == L'\0')
-            result = NULL;
+    if (result > 255) {
+        /* Large environment variable. Accept some leakage */
+        wchar_t *buf2 = (wchar_t*)malloc(sizeof(wchar_t) * (result+1));
+        GetEnvironmentVariableW(key, buf2, result);
+        return buf2;
     }
-    return result;
+
+    if (result == 0)
+        /* Either some error, e.g. ERROR_ENVVAR_NOT_FOUND,
+           or an empty environment variable. */
+        return NULL;
+
+    return buf;
 }
+
 
 static void
 debug(wchar_t * format, ...)
@@ -222,8 +231,8 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
                     continue;
                 }
                 data_size = sizeof(ip->executable) - 1;
-                status = RegQueryValueEx(ip_key, NULL, NULL, &type,
-                                         (LPBYTE) ip->executable, &data_size);
+                status = RegQueryValueExW(ip_key, NULL, NULL, &type,
+                                          (LPBYTE)ip->executable, &data_size);
                 RegCloseKey(ip_key);
                 if (status != ERROR_SUCCESS) {
                     winerror(status, message, MSGSIZE);
@@ -548,7 +557,7 @@ run_child(wchar_t * cmdline)
         error(RC_CREATE_PROCESS, L"Unable to create process using '%s'", cmdline);
     AssignProcessToJobObject(job, pi.hProcess);
     CloseHandle(pi.hThread);
-    WaitForSingleObject(pi.hProcess, INFINITE);
+    WaitForSingleObjectEx(pi.hProcess, INFINITE, FALSE);
     ok = GetExitCodeProcess(pi.hProcess, &rc);
     if (!ok)
         error(RC_CREATE_PROCESS, L"Failed to get exit code of process");
@@ -1397,3 +1406,4 @@ int cdecl wmain(int argc, wchar_t ** argv)
 }
 
 #endif
+

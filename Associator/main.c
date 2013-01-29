@@ -139,9 +139,11 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
     wchar_t ip_path[IP_SIZE];
     wchar_t * check;
     wchar_t ** checkp;
+    wchar_t *key_name = (root == HKEY_LOCAL_MACHINE) ? L"HKLM" : L"HKCU";
 
     if (status != ERROR_SUCCESS)
-        debug(L"locate_pythons_for_key: unable to open PythonCore key\n");
+        debug(L"locate_pythons_for_key: unable to open PythonCore key in %s\n",
+              key_name);
     else {
         ip = &installed_pythons[num_installed_pythons];
         for (i = 0; num_installed_pythons < MAX_INSTALLED_PYTHONS; i++) {
@@ -150,7 +152,8 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
                 if (status != ERROR_NO_MORE_ITEMS) {
                     /* unexpected error */
                     winerror(status, message, MSGSIZE);
-                    debug(L"%s\n", message);
+                    debug(L"Can't enumerate registry key for version %s: %s\n",
+                          ip->version, message);
                 }
                 break;
             }
@@ -160,7 +163,8 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
                 status = RegOpenKeyExW(root, ip_path, 0, flags, &ip_key);
                 if (status != ERROR_SUCCESS) {
                     winerror(status, message, MSGSIZE);
-                    debug(L"%s: %s\n", message, ip_path);
+                    // Note: 'message' already has a trailing \n
+                    debug(L"%s\\%s: %s", key_name, ip_path, message);
                     continue;
                 }
                 data_size = sizeof(ip->executable) - 1;
@@ -169,7 +173,7 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
                 RegCloseKey(ip_key);
                 if (status != ERROR_SUCCESS) {
                     winerror(status, message, MSGSIZE);
-                    debug(L"%s: %s\n", message, ip_path);
+                    debug(L"%s\\%s: %s\n", key_name, ip_path, message);
                     continue;
                 }
                 if (type == REG_SZ) {
@@ -184,10 +188,14 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
                                      MAX_PATH - data_size,
                                      L"%s%s", check, PYTHON_EXECUTABLE);
                         attrs = GetFileAttributesW(ip->executable);
-                        if ((attrs == INVALID_FILE_ATTRIBUTES) ||
-                            (attrs & FILE_ATTRIBUTE_DIRECTORY)) {
-                            debug(L"locate_pythons_for_key: %s: invalid file \
-attributes: %X\n",
+                        if (attrs == INVALID_FILE_ATTRIBUTES) {
+                            winerror(GetLastError(), message, MSGSIZE);
+                            debug(L"locate_pythons_for_key: %s: %s",
+                                  ip->executable, message);
+                        }
+                        else if (attrs & FILE_ATTRIBUTE_DIRECTORY) {
+                            debug(L"locate_pythons_for_key: '%s' is a \
+directory\n",
                                   ip->executable, attrs);
                         }
                         else if (find_existing_python(ip->executable)) {
@@ -218,11 +226,14 @@ invalid binary type: %X\n",
                                         /* has spaces, so quote */
                                         n = wcslen(ip->executable);
                                         memmove(&ip->executable[1],
-                                                ip->executable, n);
+                                                ip->executable, n * sizeof(wchar_t));
                                         ip->executable[0] = L'\"';
                                         ip->executable[n + 1] = L'\"';
-                                        ip->executable[n + 1] = L'\0';
+                                        ip->executable[n + 2] = L'\0';
                                     }
+                                    debug(L"locate_pythons_for_key: %s \
+is a %dbit executable\n",
+                                        ip->executable, ip->bits);
                                     ++num_installed_pythons;
                                     pip = ip++;
                                     if (num_installed_pythons >=
@@ -258,14 +269,23 @@ static void
 locate_all_pythons()
 {
 #if defined(_M_X64)
-    locate_pythons_for_key(HKEY_CURRENT_USER, KEY_READ | KEY_WOW64_64KEY);
-    locate_pythons_for_key(HKEY_LOCAL_MACHINE, KEY_READ | KEY_WOW64_64KEY);
+    // If we are a 64bit process, first hit the 32bit keys.
+    debug(L"locating Pythons in 32bit registry\n");
     locate_pythons_for_key(HKEY_CURRENT_USER, KEY_READ | KEY_WOW64_32KEY);
     locate_pythons_for_key(HKEY_LOCAL_MACHINE, KEY_READ | KEY_WOW64_32KEY);
 #else
+    // If we are a 32bit process on a 64bit Windows, first hit the 64bit keys.
+    BOOL f64 = FALSE;
+    if (IsWow64Process(GetCurrentProcess(), &f64) && f64) {
+        debug(L"locating Pythons in 64bit registry\n");
+        locate_pythons_for_key(HKEY_CURRENT_USER, KEY_READ | KEY_WOW64_64KEY);
+        locate_pythons_for_key(HKEY_LOCAL_MACHINE, KEY_READ | KEY_WOW64_64KEY);
+    }
+#endif    
+    // now hit the "native" key for this process bittedness.
+    debug(L"locating Pythons in native registry\n");
     locate_pythons_for_key(HKEY_CURRENT_USER, KEY_READ);
     locate_pythons_for_key(HKEY_LOCAL_MACHINE, KEY_READ);
-#endif
     qsort(installed_pythons, num_installed_pythons, sizeof(INSTALLED_PYTHON),
           compare_pythons);
 }

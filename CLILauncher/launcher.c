@@ -737,6 +737,7 @@ read_config_file(wchar_t * config_path)
     DWORD read;
     wchar_t * key;
     COMMAND * cp;
+    wchar_t * cmdp;
 
     read = GetPrivateProfileStringW(L"commands", NULL, NULL, keynames, MSGSIZE,
                                     config_path);
@@ -751,11 +752,14 @@ read_config_file(wchar_t * config_path)
             debug(L"read_commands: %s: not enough space for %s\n",
                   config_path, key);
         }
-        cp = find_command(key);
-        if (cp == NULL)
-            add_command(key, value);
-        else
-            update_command(cp, key, value);
+        cmdp = skip_whitespace(value);
+        if (*cmdp) {
+            cp = find_command(key);
+            if (cp == NULL)
+                add_command(key, value);
+            else
+                update_command(cp, key, value);
+        }
         key += wcslen(key) + 1;
     }
 }
@@ -1299,6 +1303,7 @@ process(int argc, wchar_t ** argv)
     }
 
     command = skip_me(GetCommandLineW());
+    debug(L"Called with command line: %s", command);
     if (argc <= 1) {
         valid = FALSE;
         p = NULL;

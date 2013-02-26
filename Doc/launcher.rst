@@ -88,6 +88,28 @@ have the script specify the version which should be used.
 The key benefit of this is that a single launcher can support multiple Python
 versions at the same time depending on the contents of the first line.
 
+If you type the following at a command line::
+
+    C:\>assoc .py
+   
+you should see::
+
+    .py=Python.File
+
+and if you type::
+
+    C:\>ftype Python.File
+
+you should see::
+
+    Python.File="C:\Windows\py.exe" "%1" %*
+
+Similarly, ``.pyc`` and ``.pyo`` files should map to ``Python.CompiledFile``,
+and ``.pyw`` should map to ``Python.NoConFile``. While ``Python.CompiledFile``
+maps to the same executable as ``Python.File``, ``Python.NoConFile`` should
+map to ``pyw.exe`` rather than ``py.exe``.
+
+
 -------------
 Shebang Lines
 -------------

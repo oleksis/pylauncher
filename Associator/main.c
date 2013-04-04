@@ -387,6 +387,7 @@ associations_exist()
         LONG size = csize;
         rc = RegQueryValueW(HKEY_CLASSES_ROOT, rp->path, buffer, &size); 
         if (rc == ERROR_SUCCESS) {
+            debug(L"Found association \'%s\'.\n", rp->path);
             result = TRUE;
             break;
         }
@@ -669,8 +670,10 @@ int WINAPI wWinMain(HINSTANCE hInstance,
         return 0;
     }
     if (!wcsstr(lpCmdLine, L"nocheck") &&
-        associations_exist())   /* Could have been restored by uninstall. */
+        associations_exist()) { /* Could have been restored by uninstall. */
+        debug(L"Some associations exist, so quitting.\n");
         return 0;
+    }
 
     locate_all_pythons();
 

@@ -298,9 +298,11 @@ typedef struct {
 
 static REGISTRY_ENTRY registry_entries[] = {
     { L".py", NULL, L"Python.File" },
+    { L".pyz", NULL, L"Python.File" },
     { L".pyc", NULL, L"Python.CompiledFile" },
     { L".pyo", NULL, L"Python.CompiledFile" },
     { L".pyw", NULL, L"Python.NoConFile" },
+    { L".pyzw", NULL, L"Python.NoConFile" },
 
     { L"Python.CompiledFile", NULL, L"Compiled Python File" },
     { L"Python.CompiledFile\\DefaultIcon", NULL, L"pyc.ico" },

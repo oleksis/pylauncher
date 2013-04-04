@@ -72,11 +72,21 @@
             <Extension Id='py'>
               <Verb Id='open' Command='Open' TargetFile='py' Argument='"%1" %*'/>
             </Extension>
+            <Extension Id='pyz'>
+              <!-- No Verb needed here, as it's associated with ProgId
+                   and not the extension, and the same launcher
+                   is used. -->
+            </Extension>
           </ProgId>
           <ProgId Id='Python.NoConFile' Description='Python File (no console)'
                   Icon='py' IconIndex='1'>
             <Extension Id='pyw'>
               <Verb Id='open' Command='Open' TargetFile='pyw' Argument='"%1" %*'/>
+            </Extension>
+            <Extension Id='pyzw'>
+              <!-- No Verb needed here, as it's associated with ProgId
+                   and not the extension, and the same launcher
+                   is used. -->
             </Extension>
           </ProgId>
           <ProgId Id='Python.CompiledFile' Description='Compiled Python File'

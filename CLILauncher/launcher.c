@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2012 Vinay Sajip. All rights reserved.
+ * Copyright (C) 2011-2013 Vinay Sajip. All rights reserved.
  *
  *
  * Redistribution and use in source and binary forms, with or without
@@ -815,7 +815,7 @@ parse_shebang(wchar_t * shebang_line, int nchars, wchar_t ** command,
 
     *command = NULL;    /* failure return */
     *suffix = NULL;
-    *search = 0;
+    *search = FALSE;
 
     if ((*shebang_line++ == L'#') && (*shebang_line++ == L'!')) {
         shebang_line = skip_whitespace(shebang_line);
@@ -1171,7 +1171,7 @@ of bytes: %d\n", header_len);
                             error(RC_BAD_VIRTUAL_PATH, L"Unknown virtual \
 path '%s'", command);
                         command += 6;   /* skip past "python" */
-                        if (search && *command == L'\0') {
+                        if (search && ((*command == L'\0') || isspace(*command))) {
                             /* Command is eligible for path search, and there
                              * is no version specification.
                              */

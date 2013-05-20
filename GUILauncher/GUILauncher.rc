@@ -53,8 +53,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1, 0, 1, 2
- PRODUCTVERSION 1, 0, 1, 2
+ FILEVERSION 1, 0, 1, 4
+ PRODUCTVERSION 1, 0, 1, 4
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -72,12 +72,12 @@ BEGIN
             VALUE "Comments", "Python Launcher for Windows"
             VALUE "CompanyName", "Python Software Foundation"
             VALUE "FileDescription", "Python Launcher for Windows (GUI)"
-            VALUE "FileVersion", "1, 0, 1, 2"
+            VALUE "FileVersion", "1, 0, 1, 4"
             VALUE "InternalName", "GUILaunpyw"
             VALUE "LegalCopyright", "Copyright (C) 2011-2012 Python Software Foundation"
             VALUE "OriginalFilename", "pyw"
             VALUE "ProductName", "Python Launcher for Windows"
-            VALUE "ProductVersion", "1, 0, 1, 2"
+            VALUE "ProductVersion", "1, 0, 1, 4"
         END
     END
     BLOCK "VarFileInfo"

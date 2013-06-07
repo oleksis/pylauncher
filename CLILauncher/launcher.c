@@ -532,10 +532,11 @@ run_child(wchar_t * cmdline)
     // See http://bugs.python.org/issue17290 and 
     // https://bitbucket.org/vinay.sajip/pylauncher/issue/20/busy-cursor-for-a-long-time-when-running
     MSG msg;
+
     PostMessage(0, 0, 0, 0);
-    GetMessage(&msg, 0, 0, 0);    
+    GetMessage(&msg, 0, 0, 0);
 #endif
-    
+
     debug(L"run_child: about to run '%s'\n", cmdline);
     job = CreateJobObject(NULL, NULL);
     ok = QueryInformationJobObject(job, JobObjectExtendedLimitInformation,
@@ -1321,8 +1322,8 @@ process(int argc, wchar_t ** argv)
             if (!valid)
                 debug(L"GetFileVersionInfo failed: %X\n", GetLastError());
             else {
-                valid = VerQueryValueW(version_data, L"\\", &file_info,
-                                       &block_size);
+                valid = VerQueryValueW(version_data, L"\\",
+                                       (LPVOID *) &file_info, &block_size);
                 if (!valid)
                     debug(L"VerQueryValue failed: %X\n", GetLastError());
                 else {
@@ -1380,9 +1381,10 @@ installed", &p[1]);
         }
 #if defined(PYTHON_ARGS)
         else {
-            for (index = 1; index < argc; index++)
+            for (index = 1; index < argc; ++index) {
                 if (*argv[index] != L'-')
                     break;
+            }
             if (index < argc) {
                 read_commands();
                 maybe_handle_shebang(&argv[index], command);
@@ -1446,4 +1448,3 @@ int cdecl wmain(int argc, wchar_t ** argv)
 }
 
 #endif
-

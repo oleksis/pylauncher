@@ -39,7 +39,6 @@
 
 /* Build options. */
 #define SKIP_PREFIX
-#define PYTHON_ARGS
 #define SEARCH_PATH
 
 /* Error codes */
@@ -1335,9 +1334,7 @@ process(int argc, wchar_t ** argv)
     void * version_data;
     VS_FIXEDFILEINFO * file_info;
     UINT block_size;
-#if defined(PYTHON_ARGS)
     int index;
-#endif
 #if defined(SCRIPT_WRAPPER)
     int newlen;
     wchar_t * newcommand;
@@ -1463,15 +1460,6 @@ process(int argc, wchar_t ** argv)
     else {
         p = argv[1];
         plen = wcslen(p);
-#if !defined(PYTHON_ARGS)
-        if (p[0] != L'-') {
-            read_commands();
-            maybe_handle_shebang(&argv[1], command);
-        }
-        /* No file with shebang, or an unrecognised shebang.
-         * Is the first arg a special version qualifier?
-         */
-#endif
         valid = (*p == L'-') && validate_version(&p[1]);
         if (valid) {
             ip = locate_python(&p[1]);
@@ -1481,7 +1469,6 @@ installed", &p[1]);
             command += wcslen(p);
             command = skip_whitespace(command);
         }
-#if defined(PYTHON_ARGS)
         else {
             for (index = 1; index < argc; ++index) {
                 if (*argv[index] != L'-')
@@ -1492,7 +1479,6 @@ installed", &p[1]);
                 maybe_handle_shebang(&argv[index], command);
             }
         }
-#endif
     }
 #endif
 
@@ -1512,13 +1498,8 @@ installed", &p[1]);
             get_version_info(version_text, MAX_PATH);
             fwprintf(stdout, L"\
 Python Launcher for Windows Version %s\n\n", version_text);
-#if defined(PYTHON_ARGS)
             fwprintf(stdout, L"\
-usage: %s [ launcher-arguments ] [python-arguments] script [ script-arguments ]\n\n", argv[0]);
-#else
-            fwprintf(stdout, L"\
-usage: %s [ launcher-arguments ] script [ script-arguments ]\n\n", argv[0]);
-#endif
+usage: %s [ launcher-arguments ] [ python-arguments ] script [ script-arguments ]\n\n", argv[0]);
             fputws(L"\
 Launcher arguments:\n\n\
 -2     : Launch the latest Python 2.x version\n\

@@ -9,6 +9,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Associator", "Associator\As
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Messager", "Messager\Messager.vcproj", "{E3DEDB42-3633-4E9D-95DE-A6EA808D7D58}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CLIWrapper", "CLIWrapper\CLIWrapper.vcproj", "{230AA7F2-FE5D-4884-A28A-865A9E34E4CF}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GUIWrapper", "GUIWrapper\GUIWrapper.vcproj", "{36025AF3-08A2-4F98-8C95-2DC51EB09098}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -49,6 +53,18 @@ Global
 		{E3DEDB42-3633-4E9D-95DE-A6EA808D7D58}.Release|Win32.Build.0 = Release|Win32
 		{E3DEDB42-3633-4E9D-95DE-A6EA808D7D58}.Release|x64.ActiveCfg = Release|x64
 		{E3DEDB42-3633-4E9D-95DE-A6EA808D7D58}.Release|x64.Build.0 = Release|x64
+		{230AA7F2-FE5D-4884-A28A-865A9E34E4CF}.Debug|Win32.ActiveCfg = Debug|Win32
+		{230AA7F2-FE5D-4884-A28A-865A9E34E4CF}.Debug|Win32.Build.0 = Debug|Win32
+		{230AA7F2-FE5D-4884-A28A-865A9E34E4CF}.Debug|x64.ActiveCfg = Debug|Win32
+		{230AA7F2-FE5D-4884-A28A-865A9E34E4CF}.Release|Win32.ActiveCfg = Release|Win32
+		{230AA7F2-FE5D-4884-A28A-865A9E34E4CF}.Release|Win32.Build.0 = Release|Win32
+		{230AA7F2-FE5D-4884-A28A-865A9E34E4CF}.Release|x64.ActiveCfg = Release|Win32
+		{36025AF3-08A2-4F98-8C95-2DC51EB09098}.Debug|Win32.ActiveCfg = Debug|Win32
+		{36025AF3-08A2-4F98-8C95-2DC51EB09098}.Debug|Win32.Build.0 = Debug|Win32
+		{36025AF3-08A2-4F98-8C95-2DC51EB09098}.Debug|x64.ActiveCfg = Debug|Win32
+		{36025AF3-08A2-4F98-8C95-2DC51EB09098}.Release|Win32.ActiveCfg = Release|Win32
+		{36025AF3-08A2-4F98-8C95-2DC51EB09098}.Release|Win32.Build.0 = Release|Win32
+		{36025AF3-08A2-4F98-8C95-2DC51EB09098}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

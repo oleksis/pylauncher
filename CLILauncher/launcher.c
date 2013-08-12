@@ -116,8 +116,12 @@ error(int rc, wchar_t * format, ... )
 #if !defined(_WINDOWS)
     fwprintf(stderr, L"%s\n", message);
 #else
-    MessageBox(NULL, message, TEXT("Python Launcher is sorry to say ..."),
-               MB_OK); 
+#if defined(SCRIPT_WRAPPER)
+#define MSG_TITLE TEXT("Python Wrapper is sorry to say ...")
+#else
+#define MSG_TITLE TEXT("Python Launcher is sorry to say ...")
+#endif
+    MessageBox(NULL, message, MSG_TITLE, MB_OK); 
 #endif
     ExitProcess(rc);
 }
@@ -530,8 +534,7 @@ locate_wrapped_script()
               wrapped_script_path);
         error(RC_NO_SCRIPT, L"Wrapper name '%s' is not valid.", wrapped_script_path);
     }
-
-    wcsncpy_s(p, MAX_PATH - (p - wrapped_script_path) + 1, SCRIPT_SUFFIX, _TRUNCATE);
+    wcsncpy_s(p, MAX_PATH - (p - wrapped_script_path), SCRIPT_SUFFIX, _TRUNCATE);
     attrs = GetFileAttributesW(wrapped_script_path);
     if (attrs == INVALID_FILE_ATTRIBUTES) {
         debug(L"File '%s' non-existent\n", wrapped_script_path);
@@ -1334,9 +1337,10 @@ process(int argc, wchar_t ** argv)
     void * version_data;
     VS_FIXEDFILEINFO * file_info;
     UINT block_size;
+#if !defined(SCRIPT_WRAPPER)
     int index;
-#if defined(SCRIPT_WRAPPER)
-    int newlen;
+#else
+    size_t newlen;
     wchar_t * newcommand;
     wchar_t * av[2];
 #endif

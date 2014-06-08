@@ -1255,6 +1255,19 @@ get_version_info(wchar_t * version_text, size_t size)
 }
 
 static int
+maybe_command(wchar_t * candidate, wchar_t ** user_cmd, wchar_t ** command)
+{
+    COMMAND * c = find_command(&candidate[1]);
+    if (c == NULL) {
+        return FALSE;
+    }
+    *user_cmd = c->value;
+    *command += wcslen(candidate);
+    *command = skip_whitespace(*command);
+    return TRUE;
+}
+
+static int
 process(int argc, wchar_t ** argv)
 {
     wchar_t * wp;
@@ -1359,6 +1372,12 @@ process(int argc, wchar_t ** argv)
         p = NULL;
     }
     else {
+        wchar_t * cfgcommand = NULL;
+        read_commands();
+        if (maybe_command(argv[1], &cfgcommand, &command)) {
+            debug(L"Identified: %s\n", cfgcommand);
+            invoke_child((wchar_t *)cfgcommand, NULL, command);
+        }
         p = argv[1];
         plen = wcslen(p);
 #if !defined(PYTHON_ARGS)
@@ -1422,9 +1441,10 @@ Launcher arguments:\n\n\
 -X.Y   : Launch the specified Python version\n", stdout);
             if (canDo64bit) {
                 fputws(L"\
--X.Y-32: Launch the specified 32bit Python version", stdout);
+-X.Y-32: Launch the specified 32bit Python version\n", stdout);
             }
-            fputws(L"\n\nThe following help text is from Python:\n\n", stdout);
+            fputws(L"-<cfg> : Launch the specified entry from a configuraion file.\n", stdout);
+            fputws(L"\nThe following help text is from Python:\n\n", stdout);
             fflush(stdout);
         }
     }

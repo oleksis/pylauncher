@@ -1382,7 +1382,6 @@ process(int argc, wchar_t ** argv)
         plen = wcslen(p);
 #if !defined(PYTHON_ARGS)
         if (p[0] != L'-') {
-            read_commands();
             maybe_handle_shebang(&argv[1], command);
         }
         /* No file with shebang, or an unrecognised shebang.
@@ -1405,7 +1404,6 @@ installed", &p[1]);
                     break;
             }
             if (index < argc) {
-                read_commands();
                 maybe_handle_shebang(&argv[index], command);
             }
         }

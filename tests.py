@@ -432,6 +432,7 @@ class ConfigurationTest(ConfiguredScriptMaker, unittest.TestCase):
             self.assertTrue(stderr.startswith(DEFAULT_PYTHON2.output_version))
 
         VERBOSE_START = b'# installing zipimport hook'
+        VERBOSE_START_3 = b'import _frozen_importlib # frozen'
 
         # Python 3 with -v
         shebang = '#!v3a\n'

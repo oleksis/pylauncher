@@ -69,14 +69,14 @@ BEGIN
     BEGIN
         BLOCK "080904b0"
         BEGIN
-            VALUE "Comments", "Python Launcher for Windows"
+            VALUE "Comments", "Python Wrapper for Windows"
             VALUE "CompanyName", "Python Software Foundation"
-            VALUE "FileDescription", "Python Launcher for Windows (Console)"
+            VALUE "FileDescription", "Python Wrapper for Windows (GUI)"
             VALUE "FileVersion", "1, 0, 1, 4"
-            VALUE "InternalName", "py"
+            VALUE "InternalName", "wrw"
             VALUE "LegalCopyright", "Copyright (C) 2011-2013 Python Software Foundation"
-            VALUE "OriginalFilename", "py"
-            VALUE "ProductName", "Python Launcher for Windows"
+            VALUE "OriginalFilename", "wrw"
+            VALUE "ProductName", "Python Wrapper for Windows"
             VALUE "ProductVersion", "1, 0, 1, 4"
         END
     END
@@ -94,9 +94,7 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_ICON1               ICON                    "..\\launcher.ico"
-IDI_ICON2               ICON                    "..\\py.ico"
-IDI_ICON3               ICON                    "..\\pyc.ico"
+IDI_ICON1               ICON                    "..\\wrapper.ico"
 #endif    // English (U.K.) resources
 /////////////////////////////////////////////////////////////////////////////
 

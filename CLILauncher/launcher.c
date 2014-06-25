@@ -719,7 +719,7 @@ static COMMAND * find_on_path(wchar_t * name)
 
 #endif
 
-static COMMAND * find_command(wchar_t * name)
+static COMMAND * find_command_config_only(wchar_t * name)
 {
     COMMAND * result = NULL;
     COMMAND * cp = commands;
@@ -731,6 +731,12 @@ static COMMAND * find_command(wchar_t * name)
             break;
         }
     }
+    return result;    
+}
+
+static COMMAND * find_command(wchar_t * name)
+{
+    COMMAND * result = find_command_config_only(name);
 #if defined(SEARCH_PATH)
     if (result == NULL)
         result = find_on_path(name);
@@ -783,7 +789,7 @@ read_config_file(wchar_t * config_path)
         }
         cmdp = skip_whitespace(value);
         if (*cmdp) {
-            cp = find_command(key);
+            cp = find_command_config_only(key);
             if (cp == NULL)
                 add_command(key, value);
             else

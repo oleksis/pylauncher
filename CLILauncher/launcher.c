@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Vinay Sajip. All rights reserved.
+ * Copyright (C) 2011-2014 Vinay Sajip. All rights reserved.
  *
  *
  * Redistribution and use in source and binary forms, with or without
@@ -785,7 +785,8 @@ static COMMAND * find_on_path(wchar_t * name)
 
 #endif
 
-static COMMAND * find_command_config_only(wchar_t * name)
+static COMMAND *
+find_command_in_config(wchar_t * name)
 {
     COMMAND * result = NULL;
     COMMAND * cp = commands;
@@ -800,9 +801,10 @@ static COMMAND * find_command_config_only(wchar_t * name)
     return result;    
 }
 
-static COMMAND * find_command(wchar_t * name)
+static COMMAND *
+find_command(wchar_t * name)
 {
-    COMMAND * result = find_command_config_only(name);
+    COMMAND * result = find_command_in_config(name);
 #if defined(SEARCH_PATH)
     if (result == NULL)
         result = find_on_path(name);
@@ -855,7 +857,7 @@ read_config_file(wchar_t * config_path)
         }
         cmdp = skip_whitespace(value);
         if (*cmdp) {
-            cp = find_command_config_only(key);
+            cp = find_command_in_config(key);
             if (cp == NULL)
                 add_command(key, value);
             else
@@ -1537,7 +1539,7 @@ Launcher arguments:\n\n\
                 fputws(L"\
 -X.Y-32: Launch the specified 32bit Python version\n", stdout);
             }
-            fputws(L"-<cfg> : Launch the specified entry from a configuraion file.\n", stdout);
+            fputws(L"-<cfg> : Launch the specified entry from a configuration file.\n", stdout);
             fputws(L"\nThe following help text is from Python:\n\n", stdout);
             fflush(stdout);
         }

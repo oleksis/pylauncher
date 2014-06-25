@@ -1,4 +1,12 @@
 #!python3
+
+# this test requires:
+#  - python2.x 32bit
+#  - python2.x 64bit
+#  - python3.x 32bit
+#  - python3.x 64bit
+# to be installed
+
 import sys
 if sys.version_info[0] < 3:
     raise ImportError("These tests require Python 3 to run.")
@@ -413,7 +421,8 @@ class ConfigurationTest(ConfiguredScriptMaker, unittest.TestCase):
             shebang = '#!%sv3\n' % prefix
             path = self.make_script(shebang_line=shebang)
             stdout, stderr = self.run_child(path)
-            self.assertTrue(stderr.startswith(DEFAULT_PYTHON3.output_version))
+            self.assertTrue(stdout.startswith(DEFAULT_PYTHON3.output_version) or
+                            stderr.startswith(DEFAULT_PYTHON3.output_version))
 
         # Python 2 version
         for prefix in VIRT_PATHS:
@@ -428,7 +437,7 @@ class ConfigurationTest(ConfiguredScriptMaker, unittest.TestCase):
         shebang = '#!v3a\n'
         path = self.make_script(shebang_line=shebang)
         stdout, stderr = self.run_child(path)
-        self.assertTrue(stderr.startswith(VERBOSE_START))
+        self.assertTrue(-1 != stderr.find(VERBOSE_START))
         # Assumes standard Python installation directory
         self.assertIn(DEFAULT_PYTHON3.bdir, stderr)
 

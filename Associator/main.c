@@ -142,7 +142,7 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
     wchar_t *key_name = (root == HKEY_LOCAL_MACHINE) ? L"HKLM" : L"HKCU";
 
     if (status != ERROR_SUCCESS)
-        debug(L"locate_pythons_for_key: unable to open PythonCore key in %s\n",
+        debug(L"locate_pythons_for_key: unable to open PythonCore key in %ls\n",
               key_name);
     else {
         ip = &installed_pythons[num_installed_pythons];
@@ -152,19 +152,19 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
                 if (status != ERROR_NO_MORE_ITEMS) {
                     /* unexpected error */
                     winerror(status, message, MSGSIZE);
-                    debug(L"Can't enumerate registry key for version %s: %s\n",
+                    debug(L"Can't enumerate registry key for version %ls: %ls\n",
                           ip->version, message);
                 }
                 break;
             }
             else {
                 _snwprintf_s(ip_path, IP_SIZE, _TRUNCATE,
-                             L"%s\\%s\\InstallPath", CORE_PATH, ip->version);
+                             L"%ls\\%ls\\InstallPath", CORE_PATH, ip->version);
                 status = RegOpenKeyExW(root, ip_path, 0, flags, &ip_key);
                 if (status != ERROR_SUCCESS) {
                     winerror(status, message, MSGSIZE);
                     // Note: 'message' already has a trailing \n
-                    debug(L"%s\\%s: %s", key_name, ip_path, message);
+                    debug(L"%ls\\%ls: %ls", key_name, ip_path, message);
                     continue;
                 }
                 data_size = sizeof(ip->executable) - 1;
@@ -173,7 +173,7 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
                 RegCloseKey(ip_key);
                 if (status != ERROR_SUCCESS) {
                     winerror(status, message, MSGSIZE);
-                    debug(L"%s\\%s: %s\n", key_name, ip_path, message);
+                    debug(L"%ls\\%ls: %ls\n", key_name, ip_path, message);
                     continue;
                 }
                 if (type == REG_SZ) {
@@ -186,27 +186,27 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
                         _snwprintf_s(&ip->executable[data_size],
                                      MAX_PATH - data_size,
                                      MAX_PATH - data_size,
-                                     L"%s%s", check, PYTHON_EXECUTABLE);
+                                     L"%ls%ls", check, PYTHON_EXECUTABLE);
                         attrs = GetFileAttributesW(ip->executable);
                         if (attrs == INVALID_FILE_ATTRIBUTES) {
                             winerror(GetLastError(), message, MSGSIZE);
-                            debug(L"locate_pythons_for_key: %s: %s",
+                            debug(L"locate_pythons_for_key: %ls: %ls",
                                   ip->executable, message);
                         }
                         else if (attrs & FILE_ATTRIBUTE_DIRECTORY) {
-                            debug(L"locate_pythons_for_key: '%s' is a \
+                            debug(L"locate_pythons_for_key: '%ls' is a \
 directory\n",
                                   ip->executable, attrs);
                         }
                         else if (find_existing_python(ip->executable)) {
-                            debug(L"locate_pythons_for_key: %s: already \
-found: %s\n", ip->executable);
+                            debug(L"locate_pythons_for_key: %ls: already \
+found: %ls\n", ip->executable);
                         }
                         else {
                             /* check the executable type. */
                             ok = GetBinaryTypeW(ip->executable, &attrs);
                             if (!ok) {
-                                debug(L"Failure getting binary type: %s\n",
+                                debug(L"Failure getting binary type: %ls\n",
                                       ip->executable);
                             }
                             else {
@@ -217,7 +217,7 @@ found: %s\n", ip->executable);
                                 else
                                     ip->bits = 0;
                                 if (ip->bits == 0) {
-                                    debug(L"locate_pythons_for_key: %s: \
+                                    debug(L"locate_pythons_for_key: %ls: \
 invalid binary type: %X\n",
                                           ip->executable, attrs);
                                 }
@@ -231,7 +231,7 @@ invalid binary type: %X\n",
                                         ip->executable[n + 1] = L'\"';
                                         ip->executable[n + 2] = L'\0';
                                     }
-                                    debug(L"locate_pythons_for_key: %s \
+                                    debug(L"locate_pythons_for_key: %ls \
 is a %dbit executable\n",
                                         ip->executable, ip->bits);
                                     ++num_installed_pythons;
@@ -344,12 +344,12 @@ do_association(INSTALLED_PYTHON * ip)
         if (wcsstr(rp->path, L"DefaultIcon")) {
             pvalue = value;
             _snwprintf_s(value, MAX_PATH, _TRUNCATE,
-                         L"%s\\DLLs\\%s", root, rp->value);
+                         L"%ls\\DLLs\\%ls", root, rp->value);
         }
         else if (wcsstr(rp->path, L"open\\command")) {
             pvalue = value;
             _snwprintf_s(value, MAX_PATH, _TRUNCATE,
-                         L"%s\\%s \"%%1\" %%*", root, rp->value);
+                         L"%ls\\%ls \"%%1\" %%*", root, rp->value);
         }
         else {
             pvalue = rp->value;
@@ -387,7 +387,7 @@ associations_exist()
         LONG size = csize;
         rc = RegQueryValueW(HKEY_CLASSES_ROOT, rp->path, buffer, &size); 
         if (rc == ERROR_SUCCESS) {
-            debug(L"Found association \'%s\'.\n", rp->path);
+            debug(L"Found association \'%ls\'.\n", rp->path);
             result = TRUE;
             break;
         }
@@ -602,8 +602,8 @@ associate with couldn't be determined.", _TRUNCATE);
                     /* Do the association and set the message. */
                     do_association(ip);
                     _snwprintf_s(confirmation, MSGSIZE, _TRUNCATE,
-                                 L"Associated Python files with the Python %s \
-found at '%s'", ip->version, ip->executable);
+                                 L"Associated Python files with the Python %ls \
+found at '%ls'", ip->version, ip->executable);
                 }
             }
 

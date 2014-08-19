@@ -69,7 +69,7 @@ static FILE * log_fp = NULL;
 static wchar_t *
 skip_whitespace(wchar_t * p)
 {
-    while (*p && isspace(*p))
+    while (*p && iswspace(*p))
         ++p;
     return p;
 }
@@ -285,7 +285,7 @@ directory\n",
                         }
                         else if (find_existing_python(ip->executable)) {
                             debug(L"locate_pythons_for_key: %s: already \
-found: %s\n", ip->executable);
+found\n", ip->executable);
                         }
                         else {
                             /* check the executable type. */
@@ -937,7 +937,7 @@ parse_shebang(wchar_t * shebang_line, int nchars, wchar_t ** command,
                 }
             }
             /* remove trailing whitespace */
-            while ((endp > shebang_line) && isspace(*endp))
+            while ((endp > shebang_line) && iswspace(*endp))
                 --endp;
             if (endp > shebang_line)
                 endp[1] = L'\0';
@@ -1246,7 +1246,7 @@ of bytes: %d\n", header_len);
                             error(RC_BAD_VIRTUAL_PATH, L"Unknown virtual \
 path '%s'", command);
                         command += 6;   /* skip past "python" */
-                        if (search && ((*command == L'\0') || isspace(*command))) {
+                        if (search && ((*command == L'\0') || iswspace(*command))) {
                             /* Command is eligible for path search, and there
                              * is no version specification.
                              */

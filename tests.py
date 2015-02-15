@@ -138,7 +138,9 @@ def locate_all_pythons():
     return sorted(infos, reverse=True, key=lambda info: (info.version, -info.bits))
 
 
-ALL_PYTHONS = locate_all_pythons()
+# These are defined later in the main clause.
+#ALL_PYTHONS = DEFAULT_PYTHON2 = DEFAULT_PYTHON3 = None
+
 
 # locate a specific python version - some version must be specified (although
 # it may be just a major version)
@@ -168,14 +170,9 @@ def locate_python(spec):
             if ret is None:
                 ret = locate_python_ver('3')
     # may still be none, but we are out of search options.
-    print('located python: %s -> %s' % (spec, (ret.version, ret.bits, ret.executable)))
+    logger.debug('located python: %s -> %s', spec, (ret.version, ret.bits, ret.executable))
     return ret
 
-DEFAULT_PYTHON2 = locate_python('2')
-assert DEFAULT_PYTHON2, "You don't appear to have Python 2 installed"
-
-DEFAULT_PYTHON3 = locate_python('3')
-assert DEFAULT_PYTHON3, "You don't appear to have Python 3 installed"
 
 def update_for_installed_pythons(*pythons):
     for python in pythons:
@@ -201,8 +198,6 @@ def update_for_installed_pythons(*pythons):
             value = v % python.version
             assert key not in SHEBANGS  # sanity check
             SHEBANGS[key] = value
-
-update_for_installed_pythons(DEFAULT_PYTHON2, DEFAULT_PYTHON3)
 
 class ScriptMaker:
     def setUp(self):
@@ -235,7 +230,7 @@ class ScriptMaker:
         result = stdout.startswith(pyinfo.bversion)
         if not result:
             self.save_script()
-            logger.debug('Expected: %s', pyinfo.bversion)
+            logger.debug('Match failed - expected: %s', pyinfo.bversion)
             for i, s in enumerate(self.last_streams):
                 stream = 'stderr' if i else 'stdout'
                 logger.debug('%s: %r', stream, s)
@@ -295,7 +290,6 @@ class BasicTest(ScriptMaker, unittest.TestCase):
             stdout, stderr = self.run_child(path)
             python = self.get_python_for_shebang(shebang)
             matches = self.matches(stdout, python)
-            logger.debug('%s: shebang: %s, output: %s', matches, shebang.strip(), stdout)
             self.assertTrue(matches)
 
     # Tests with UTF-8 Python sources with no BOM
@@ -381,7 +375,7 @@ class ConfiguredScriptMaker(ScriptMaker):
             write_data(self.global_ini, self.global_config)
         ScriptMaker.tearDown(self)
 
-LOCAL_INI = '''[commands]
+LOCAL_INI_IN = '''[commands]
 h3  = {p3.executable} --help
 v3  = {p3.executable} --version
 v2a = {p2.executable} -v
@@ -389,9 +383,9 @@ v2a = {p2.executable} -v
 [defaults]
 python=3
 python3={p3.version}
-'''.format(p2=DEFAULT_PYTHON2, p3=DEFAULT_PYTHON3)
+'''
 
-GLOBAL_INI = '''[commands]
+GLOBAL_INI_IN = '''[commands]
 h2  = {p2.executable} -h
 h3  = {p3.executable} -h
 v2  = {p2.executable} -V
@@ -402,7 +396,7 @@ shell = cmd /c
 [defaults]
 python=2
 python2={p2.version}
-'''.format(p2=DEFAULT_PYTHON2, p3=DEFAULT_PYTHON3)
+'''
 
 class ConfigurationTest(ConfiguredScriptMaker, unittest.TestCase):
     def test_basic(self):
@@ -507,4 +501,17 @@ class ConfigurationTest(ConfiguredScriptMaker, unittest.TestCase):
 if __name__ == '__main__':
     logging.basicConfig(filename='tests.log', filemode='w', level=logging.DEBUG,
                         format='%(lineno)4d %(message)s')
+    global DEFAULT_PYTHON2, DEFAULT_PYTHON3, ALL_PYTHONS, LOCAL_INI, GLOBAL_INI
+    ALL_PYTHONS = locate_all_pythons()
+    DEFAULT_PYTHON2 = locate_python('2')
+    assert DEFAULT_PYTHON2, "You don't appear to have Python 2 installed"
+
+    DEFAULT_PYTHON3 = locate_python('3')
+    assert DEFAULT_PYTHON3, "You don't appear to have Python 3 installed"
+
+    update_for_installed_pythons(DEFAULT_PYTHON2, DEFAULT_PYTHON3)
+
+    LOCAL_INI = LOCAL_INI_IN.format(p2=DEFAULT_PYTHON2, p3=DEFAULT_PYTHON3)
+    GLOBAL_INI = GLOBAL_INI_IN.format(p2=DEFAULT_PYTHON2, p3=DEFAULT_PYTHON3)
+
     unittest.main()

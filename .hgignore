@@ -1,5 +1,4 @@
-Debug/.*$
-Release/.*$
+(Debug|Release)/
 Doc/.*\.html$
-\.(suo|ncb|user|aps|msi|msm|wix(obj|pdb))$
+\.(suo|ncb|user|aps|msi|msm|wix(obj|pdb)|log)$
 __pycache__/

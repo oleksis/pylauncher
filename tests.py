@@ -12,6 +12,7 @@ if sys.version_info[0] < 3:
     raise ImportError("These tests require Python 3 to run.")
 
 import ctypes
+import logging
 import os
 import os.path
 import shutil
@@ -20,6 +21,7 @@ import tempfile
 import unittest
 import winreg
 
+logger = logging.getLogger()
 
 SCRIPT_TEMPLATE='''%(shebang_line)s%(coding_line)simport sys
 print(sys.version)
@@ -154,16 +156,19 @@ def locate_python(spec):
         # has a default for that version.
         spec = os.environ.get('PY_DEFAULT_PYTHON'+spec, spec)
     if spec:
-        return locate_python_ver(spec)
-    # No python spec - see if the environment has a default.
-    spec = os.environ.get('PY_DEFAULT_PYTHON')
-    if spec:
-        return locate_python_ver(spec)
-    # hrmph - still no spec - prefer python 2 if installed.
-    ret = locate_python_ver('2')
-    if ret is None:
-        ret = locate_python_ver('3')
+        ret = locate_python_ver(spec)
+    else:
+        # No python spec - see if the environment has a default.
+        spec = os.environ.get('PY_DEFAULT_PYTHON')
+        if spec:
+            ret = locate_python_ver(spec)
+        else:
+            # hrmph - still no spec - prefer python 2 if installed.
+            ret = locate_python_ver('2')
+            if ret is None:
+                ret = locate_python_ver('3')
     # may still be none, but we are out of search options.
+    print('located python: %s -> %s' % (spec, (ret.version, ret.bits, ret.executable)))
     return ret
 
 DEFAULT_PYTHON2 = locate_python('2')
@@ -202,8 +207,10 @@ update_for_installed_pythons(DEFAULT_PYTHON2, DEFAULT_PYTHON3)
 class ScriptMaker:
     def setUp(self):
         self.work_dir = tempfile.mkdtemp()
+        logger.debug('Starting test %s', self._testMethodName)
 
     def tearDown(self):
+        logger.debug('Ending test %s', self._testMethodName)
         shutil.rmtree(self.work_dir)
 
     def make_script(self, shebang_line='', coding_line='', encoding='ascii',
@@ -217,6 +224,7 @@ class ScriptMaker:
         with open(path, 'wb') as f:
             f.write(script)
         self.last_script = script
+        logger.debug('Made script: %r' % script)
         return path
 
     def save_script(self):
@@ -227,9 +235,10 @@ class ScriptMaker:
         result = stdout.startswith(pyinfo.bversion)
         if not result:
             self.save_script()
-            print('Expected', pyinfo.bversion)
-            for s in self.last_streams:
-                print(repr(s))
+            logger.debug('Expected: %s', pyinfo.bversion)
+            for i, s in enumerate(self.last_streams):
+                stream = 'stderr' if i else 'stdout'
+                logger.debug('%s: %r', stream, s)
         return result
 
     def is_encoding_error(self, message):
@@ -273,6 +282,7 @@ class BasicTest(ScriptMaker, unittest.TestCase):
                 p =  subprocess.Popen([LAUNCHER, nohyphen, script], 
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 stdout, stderr = p.communicate()
+                self.last_streams = stdout, stderr
                 self.assertTrue(self.matches(stdout, DEFAULT_PYTHON2))
             finally:
                 os.remove(nohyphen)
@@ -284,7 +294,9 @@ class BasicTest(ScriptMaker, unittest.TestCase):
             path = self.make_script(shebang_line=shebang)
             stdout, stderr = self.run_child(path)
             python = self.get_python_for_shebang(shebang)
-            self.assertTrue(self.matches(stdout, python))
+            matches = self.matches(stdout, python)
+            logger.debug('%s: shebang: %s, output: %s', matches, shebang.strip(), stdout)
+            self.assertTrue(matches)
 
     # Tests with UTF-8 Python sources with no BOM
     def test_shebang_utf8_nobom(self):
@@ -326,6 +338,18 @@ class BasicTest(ScriptMaker, unittest.TestCase):
             stdout, stderr = self.run_child(path)
             python = self.get_python_for_shebang(shebang)
             self.assertTrue(self.matches(stdout, python))
+
+    def ztest_venv(self):
+        "Test correct operation in a virtualenv"
+        if not os.path.isdir('venv34'):
+            raise unittest.SkipTest('a venv is needed for this test')
+        env = os.environ.copy()
+        env['VIRTUAL_ENV'] = os.path.abspath('venv34')
+        for key in ('PY', 'ENV_PY'):
+            shebang = SHEBANGS[key]
+            path = self.make_script(shebang_line=shebang, encoding='utf-8')
+            stdout, stderr = self.run_child(path, env=env)
+            self.assertTrue(stdout.startswith(b'3.4'))
 
 def read_data(path):
     if not os.path.exists(path):
@@ -481,5 +505,6 @@ class ConfigurationTest(ConfiguredScriptMaker, unittest.TestCase):
 
 
 if __name__ == '__main__':
+    logging.basicConfig(filename='tests.log', filemode='w', level=logging.DEBUG,
+                        format='%(lineno)4d %(message)s')
     unittest.main()
-

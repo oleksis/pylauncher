@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2014 Vinay Sajip. All rights reserved.
+ * Copyright (C) 2011-2015 Vinay Sajip. All rights reserved.
  *
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@
 /* Build options. */
 #define SKIP_PREFIX
 #define SEARCH_PATH
+#define SUPPORT_VENV
 
 /* Error codes */
 
@@ -373,6 +374,30 @@ locate_all_pythons()
     locate_pythons_for_key(HKEY_LOCAL_MACHINE, KEY_READ);
     qsort(installed_pythons, num_installed_pythons, sizeof(INSTALLED_PYTHON),
           compare_pythons);
+}
+
+static wchar_t *
+find_python_by_venv()
+{
+    static wchar_t venv_python[MAX_PATH];
+    wchar_t *virtual_env = get_env(L"VIRTUAL_ENV");
+    DWORD attrs;
+
+    /* Check for VIRTUAL_ENV environment variable */
+    if (virtual_env == NULL || virtual_env[0] == L'\0') {
+        return NULL;
+    }
+
+    /* Check for a python executable in the venv */
+    debug(L"Checking for Python executable in virtual env '%ls'\n", virtual_env);
+    _snwprintf_s(venv_python, MAX_PATH, _TRUNCATE,
+                 L"%ls\\Scripts\\%ls", virtual_env, PYTHON_EXECUTABLE);
+    attrs = GetFileAttributesW(venv_python);
+    if (attrs == INVALID_FILE_ATTRIBUTES) {
+        debug(L"Python executable %ls missing from virtual env\n", venv_python);
+        return NULL;
+    }
+    return venv_python;
 }
 
 static INSTALLED_PYTHON *
@@ -1346,6 +1371,7 @@ process(int argc, wchar_t ** argv)
 {
     wchar_t * wp;
     wchar_t * command;
+    wchar_t * executable;
     wchar_t * p;
     int rc = 0;
     size_t plen;
@@ -1497,6 +1523,7 @@ process(int argc, wchar_t ** argv)
             if (ip == NULL)
                 error(RC_NO_PYTHON, L"Requested Python version (%ls) not \
 installed", &p[1]);
+            executable = ip->executable;
             command += wcslen(p);
             command = skip_whitespace(command);
         }
@@ -1513,9 +1540,21 @@ installed", &p[1]);
 #endif
 
     if (!valid) {
+#if defined(SUPPORT_VENV)
+        /* Look for an active virtualenv */
+        executable = find_python_by_venv();
+        if (executable == NULL) {
+            ip = locate_python(L"");
+            if (ip == NULL)
+                error(RC_NO_PYTHON, L"Can't find a default Python.");
+            executable = ip->executable;
+        }
+#else
         ip = locate_python(L"");
         if (ip == NULL)
             error(RC_NO_PYTHON, L"Can't find a default Python.");
+        executable = ip->executable;
+#endif
         if ((argc == 2) && (!_wcsicmp(p, L"-h") || !_wcsicmp(p, L"--help"))) {
 #if defined(_M_X64)
             BOOL canDo64bit = TRUE;
@@ -1544,7 +1583,7 @@ Launcher arguments:\n\n\
             fflush(stdout);
         }
     }
-    invoke_child(ip->executable, NULL, command);
+    invoke_child(executable, NULL, command);
     return rc;
 }
 

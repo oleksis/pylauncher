@@ -281,8 +281,7 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
                         }
                         else if (attrs & FILE_ATTRIBUTE_DIRECTORY) {
                             debug(L"locate_pythons_for_key: '%ls' is a \
-directory\n",
-                                  ip->executable, attrs);
+directory\n", ip->executable);
                         }
                         else if (find_existing_python(ip->executable)) {
                             debug(L"locate_pythons_for_key: %ls: already \
@@ -304,8 +303,7 @@ found\n", ip->executable);
                                     ip->bits = 0;
                                 if (ip->bits == 0) {
                                     debug(L"locate_pythons_for_key: %ls: \
-invalid binary type: %X\n",
-                                          ip->executable, attrs);
+invalid binary type: %X\n", ip->executable, attrs);
                                 }
                                 else {
                                     if (wcschr(ip->executable, L' ') != NULL) {
@@ -318,8 +316,7 @@ invalid binary type: %X\n",
                                         ip->executable[n + 2] = L'\0';
                                     }
                                     debug(L"locate_pythons_for_key: %ls \
-is a %dbit executable\n",
-                                        ip->executable, ip->bits);
+is a %dbit executable\n", ip->executable, ip->bits);
                                     ++num_installed_pythons;
                                     pip = ip++;
                                     if (num_installed_pythons >=
@@ -367,37 +364,13 @@ locate_all_pythons()
         locate_pythons_for_key(HKEY_CURRENT_USER, KEY_READ | KEY_WOW64_64KEY);
         locate_pythons_for_key(HKEY_LOCAL_MACHINE, KEY_READ | KEY_WOW64_64KEY);
     }
-#endif    
+#endif
     // now hit the "native" key for this process bittedness.
     debug(L"locating Pythons in native registry\n");
     locate_pythons_for_key(HKEY_CURRENT_USER, KEY_READ);
     locate_pythons_for_key(HKEY_LOCAL_MACHINE, KEY_READ);
     qsort(installed_pythons, num_installed_pythons, sizeof(INSTALLED_PYTHON),
           compare_pythons);
-}
-
-static wchar_t *
-find_python_by_venv()
-{
-    static wchar_t venv_python[MAX_PATH];
-    wchar_t *virtual_env = get_env(L"VIRTUAL_ENV");
-    DWORD attrs;
-
-    /* Check for VIRTUAL_ENV environment variable */
-    if (virtual_env == NULL || virtual_env[0] == L'\0') {
-        return NULL;
-    }
-
-    /* Check for a python executable in the venv */
-    debug(L"Checking for Python executable in virtual env '%ls'\n", virtual_env);
-    _snwprintf_s(venv_python, MAX_PATH, _TRUNCATE,
-                 L"%ls\\Scripts\\%ls", virtual_env, PYTHON_EXECUTABLE);
-    attrs = GetFileAttributesW(venv_python);
-    if (attrs == INVALID_FILE_ATTRIBUTES) {
-        debug(L"Python executable %ls missing from virtual env\n", venv_python);
-        return NULL;
-    }
-    return venv_python;
 }
 
 static INSTALLED_PYTHON *
@@ -425,6 +398,30 @@ find_python_by_version(wchar_t const * wanted_ver)
     return result;
 }
 
+
+static wchar_t *
+find_python_by_venv()
+{
+    static wchar_t venv_python[MAX_PATH];
+    wchar_t *virtual_env = get_env(L"VIRTUAL_ENV");
+    DWORD attrs;
+
+    /* Check for VIRTUAL_ENV environment variable */
+    if (virtual_env == NULL || virtual_env[0] == L'\0') {
+        return NULL;
+    }
+
+    /* Check for a python executable in the venv */
+    debug(L"Checking for Python executable in virtual env '%ls'\n", virtual_env);
+    _snwprintf_s(venv_python, MAX_PATH, _TRUNCATE,
+                 L"%ls\\Scripts\\%ls", virtual_env, PYTHON_EXECUTABLE);
+    attrs = GetFileAttributesW(venv_python);
+    if (attrs == INVALID_FILE_ATTRIBUTES) {
+        debug(L"Python executable %ls missing from virtual env\n", venv_python);
+        return NULL;
+    }
+    return venv_python;
+}
 
 static wchar_t appdata_ini_path[MAX_PATH];
 static wchar_t launcher_ini_path[MAX_PATH];
@@ -559,7 +556,8 @@ locate_wrapped_script()
               wrapped_script_path);
         error(RC_NO_SCRIPT, L"Wrapper name '%ls' is not valid.", wrapped_script_path);
     }
-    wcsncpy_s(p, MAX_PATH - (p - wrapped_script_path), SCRIPT_SUFFIX, _TRUNCATE);
+
+    wcsncpy_s(p, MAX_PATH - (p - wrapped_script_path) + 1, SCRIPT_SUFFIX, _TRUNCATE);
     attrs = GetFileAttributesW(wrapped_script_path);
     if (attrs == INVALID_FILE_ATTRIBUTES) {
         debug(L"File '%ls' non-existent\n", wrapped_script_path);
@@ -620,7 +618,7 @@ run_child(wchar_t * cmdline)
     // window, or fetching a message).  As this launcher doesn't do this
     // directly, that cursor remains even after the child process does these
     // things.  We avoid that by doing a simple post+get message.
-    // See http://bugs.python.org/issue17290 and 
+    // See http://bugs.python.org/issue17290 and
     // https://bitbucket.org/vinay.sajip/pylauncher/issue/20/busy-cursor-for-a-long-time-when-running
     MSG msg;
 
@@ -935,10 +933,10 @@ parse_shebang(wchar_t * shebang_line, int nchars, wchar_t ** command,
             }
             if (vpp->shebang == NULL) {
                 /*
-                 * Not found in builtins - look in customised commands.
+                 * Not found in builtins - look in customized commands.
                  *
                  * We can't permanently modify the shebang line in case
-                 * it's not a customised command, but we can temporarily
+                 * it's not a customized command, but we can temporarily
                  * stick a NUL after the command while searching for it,
                  * then put back the char we zapped.
                  */

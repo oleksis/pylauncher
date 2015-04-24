@@ -281,8 +281,7 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
                         }
                         else if (attrs & FILE_ATTRIBUTE_DIRECTORY) {
                             debug(L"locate_pythons_for_key: '%ls' is a \
-directory\n",
-                                  ip->executable, attrs);
+directory\n", ip->executable);
                         }
                         else if (find_existing_python(ip->executable)) {
                             debug(L"locate_pythons_for_key: %ls: already \
@@ -304,8 +303,7 @@ found\n", ip->executable);
                                     ip->bits = 0;
                                 if (ip->bits == 0) {
                                     debug(L"locate_pythons_for_key: %ls: \
-invalid binary type: %X\n",
-                                          ip->executable, attrs);
+invalid binary type: %X\n", ip->executable, attrs);
                                 }
                                 else {
                                     if (wcschr(ip->executable, L' ') != NULL) {
@@ -318,8 +316,7 @@ invalid binary type: %X\n",
                                         ip->executable[n + 2] = L'\0';
                                     }
                                     debug(L"locate_pythons_for_key: %ls \
-is a %dbit executable\n",
-                                        ip->executable, ip->bits);
+is a %dbit executable\n", ip->executable, ip->bits);
                                     ++num_installed_pythons;
                                     pip = ip++;
                                     if (num_installed_pythons >=

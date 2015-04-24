@@ -333,7 +333,7 @@ class BasicTest(ScriptMaker, unittest.TestCase):
             python = self.get_python_for_shebang(shebang)
             self.assertTrue(self.matches(stdout, python))
 
-    def ztest_venv(self):
+    def test_venv(self):
         "Test correct operation in a virtualenv"
         if not os.path.isdir('venv34'):
             raise unittest.SkipTest('a venv is needed for this test')
@@ -343,7 +343,8 @@ class BasicTest(ScriptMaker, unittest.TestCase):
             shebang = SHEBANGS[key]
             path = self.make_script(shebang_line=shebang, encoding='utf-8')
             stdout, stderr = self.run_child(path, env=env)
-            self.assertTrue(stdout.startswith(b'3.4'))
+            self.assertEqual(stdout.startswith(b'3.4'), key == 'ENV_PY')
+            self.assertEqual(stdout.startswith(b'2.7'), key != 'ENV_PY')
 
 def read_data(path):
     if not os.path.exists(path):

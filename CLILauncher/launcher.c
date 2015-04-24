@@ -398,7 +398,6 @@ find_python_by_version(wchar_t const * wanted_ver)
     return result;
 }
 
-
 static wchar_t *
 find_python_by_venv()
 {
@@ -1273,6 +1272,14 @@ path '%ls'", command);
                             /* Command is eligible for path search, and there
                              * is no version specification.
                              */
+#if defined(SUPPORT_VENV)
+                            /* Look for an active virtualenv */
+                            wchar_t * venv_command = find_python_by_venv();
+                            if (venv_command != NULL) {
+                                debug(L"Python in venv: %ls\n", venv_command);
+                                invoke_child(venv_command, suffix, cmdline);
+                            }
+#endif
                             debug(L"searching PATH for python executable\n");
                             cmd = find_on_path(L"python");
                             debug(L"Python on path: %ls\n", cmd ? cmd->value : L"<not found>");
@@ -1509,11 +1516,11 @@ process(int argc, wchar_t ** argv)
     else {
         wchar_t * cfgcommand = NULL;
         read_commands();
-        if (maybe_command(argv[1], &cfgcommand, &command)) {
+        p = argv[1];
+        if (*p == '-' && maybe_command(p, &cfgcommand, &command)) {
             debug(L"Identified: %ls\n", cfgcommand);
             invoke_child((wchar_t *)cfgcommand, NULL, command);
         }
-        p = argv[1];
         plen = wcslen(p);
         valid = (*p == L'-') && validate_version(&p[1]);
         if (valid) {

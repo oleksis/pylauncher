@@ -242,7 +242,11 @@ class ScriptMaker:
         return b'but no encoding declared; see' in message
 
     def run_child(self, path, env=None):
-        p = subprocess.Popen([LAUNCHER, path], stdout=subprocess.PIPE,
+        if isinstance(path, (list, tuple)):
+            cmdline = [LAUNCHER] + list(path)
+        else:
+            cmdline = [LAUNCHER, path]
+        p = subprocess.Popen(cmdline, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, shell=False,
                              env=env)
         stdout, stderr = p.communicate()
@@ -339,16 +343,20 @@ class BasicTest(ScriptMaker, unittest.TestCase):
         "Test correct operation in a virtualenv"
         if not os.path.isdir('venv34'):
             raise unittest.SkipTest('a venv is needed for this test')
-        if not SUPPORT_VENV_IN_SHEBANG:
-            raise unittest.SkipTest('implicit venv via /usr/bin/env not supported')
+        # Check interactive operation
         env = os.environ.copy()
+        stdout, stderr = self.run_child(['-c', 'import sys; print(sys.version)'], env=env)
+        self.assertTrue(stdout.startswith(b'2.7'))        
         env['VIRTUAL_ENV'] = os.path.abspath('venv34')
-        for key in ('PY', 'ENV_PY'):
-            shebang = SHEBANGS[key]
-            path = self.make_script(shebang_line=shebang, encoding='utf-8')
-            stdout, stderr = self.run_child(path, env=env)
-            self.assertEqual(stdout.startswith(b'3.4'), key == 'ENV_PY')
-            self.assertEqual(stdout.startswith(b'2.7'), key != 'ENV_PY')
+        stdout, stderr = self.run_child(['-c', 'import sys; print(sys.version)'], env=env)
+        self.assertTrue(stdout.startswith(b'3.4'))        
+        if SUPPORT_VENV_IN_SHEBANG:
+            for key in ('PY', 'ENV_PY'):
+                shebang = SHEBANGS[key]
+                path = self.make_script(shebang_line=shebang, encoding='utf-8')
+                stdout, stderr = self.run_child(path, env=env)
+                self.assertEqual(stdout.startswith(b'3.4'), key == 'ENV_PY')
+                self.assertEqual(stdout.startswith(b'2.7'), key != 'ENV_PY')
 
 def read_data(path):
     if not os.path.exists(path):

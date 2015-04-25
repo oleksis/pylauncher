@@ -34,6 +34,8 @@ LAUNCHER = os.path.join('Debug', 'py.exe')
 
 IS_W = sys.executable.endswith("w.exe")
 
+SUPPORT_VENV_IN_SHEBANG = False
+
 SHEBANGS = {
     'NONE': '',
     'ENV_PY': '#!/usr/bin/env python\n',
@@ -337,6 +339,8 @@ class BasicTest(ScriptMaker, unittest.TestCase):
         "Test correct operation in a virtualenv"
         if not os.path.isdir('venv34'):
             raise unittest.SkipTest('a venv is needed for this test')
+        if not SUPPORT_VENV_IN_SHEBANG:
+            raise unittest.SkipTest('implicit venv via /usr/bin/env not supported')
         env = os.environ.copy()
         env['VIRTUAL_ENV'] = os.path.abspath('venv34')
         for key in ('PY', 'ENV_PY'):

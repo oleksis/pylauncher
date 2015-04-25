@@ -1272,7 +1272,7 @@ path '%ls'", command);
                             /* Command is eligible for path search, and there
                              * is no version specification.
                              */
-#if defined(SUPPORT_VENV)
+#if defined(SUPPORT_VENV) && defined(SUPPORT_VENV_IN_SHEBANG)
                             /* Look for an active virtualenv */
                             wchar_t * venv_command = find_python_by_venv();
                             if (venv_command != NULL) {

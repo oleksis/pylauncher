@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2015 Vinay Sajip. All rights reserved.
+ * Copyright (C) 2011-2016 Vinay Sajip. All rights reserved.
  *
  *
  * Redistribution and use in source and binary forms, with or without
@@ -124,7 +124,8 @@ error(int rc, wchar_t * format, ... )
 #endif
     MessageBox(NULL, message, MSG_TITLE, MB_OK); 
 #endif
-    ExitProcess(rc);
+    /* ExitProcess(rc); */
+    exit(rc);
 }
 
 /*
@@ -140,7 +141,7 @@ static wchar_t * get_env(wchar_t * key)
     if (result >= BUFSIZE) {
         /* Large environment variable. Accept some leakage */
         wchar_t *buf2 = (wchar_t*)malloc(sizeof(wchar_t) * (result+1));
-        if (buf2 = NULL) {
+        if (buf2 == NULL) {
             error(RC_NO_MEMORY, L"Could not allocate environment buffer");
         }
         GetEnvironmentVariableW(key, buf2, result);
@@ -190,8 +191,11 @@ static size_t num_installed_pythons = 0;
 
 static wchar_t * location_checks[] = {
     L"\\",
-    L"\\PCBuild\\",
+    L"\\PCBuild\\win32\\",
     L"\\PCBuild\\amd64\\",
+    // To support early 32bit versions of Python that stuck the build binaries
+    // directly in PCBuild...
+    L"\\PCBuild\\",
     NULL
 };
 
@@ -222,6 +226,7 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
     BOOL ok;
     DWORD type, data_size, attrs;
     INSTALLED_PYTHON * ip, * pip;
+    wchar_t ip_version[IP_VERSION_SIZE];
     wchar_t ip_path[IP_SIZE];
     wchar_t * check;
     wchar_t ** checkp;
@@ -233,19 +238,21 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
     else {
         ip = &installed_pythons[num_installed_pythons];
         for (i = 0; num_installed_pythons < MAX_INSTALLED_PYTHONS; i++) {
-            status = RegEnumKeyW(core_root, i, ip->version, MAX_VERSION_SIZE);
+            status = RegEnumKeyW(core_root, i, ip_version, IP_VERSION_SIZE);
             if (status != ERROR_SUCCESS) {
                 if (status != ERROR_NO_MORE_ITEMS) {
                     /* unexpected error */
                     winerror(status, message, MSGSIZE);
                     debug(L"Can't enumerate registry key for version %ls: %ls\n",
-                          ip->version, message);
+                          ip_version, message);
                 }
                 break;
             }
             else {
+                wcsncpy_s(ip->version, MAX_VERSION_SIZE, ip_version,
+                          MAX_VERSION_SIZE-1);
                 _snwprintf_s(ip_path, IP_SIZE, _TRUNCATE,
-                             L"%ls\\%ls\\InstallPath", CORE_PATH, ip->version);
+                             L"%ls\\%ls\\InstallPath", CORE_PATH, ip_version);
                 status = RegOpenKeyExW(root, ip_path, 0, flags, &ip_key);
                 if (status != ERROR_SUCCESS) {
                     winerror(status, message, MSGSIZE);
@@ -281,7 +288,8 @@ locate_pythons_for_key(HKEY root, REGSAM flags)
                         }
                         else if (attrs & FILE_ATTRIBUTE_DIRECTORY) {
                             debug(L"locate_pythons_for_key: '%ls' is a \
-directory\n", ip->executable);
+directory\n",
+                                  ip->executable);
                         }
                         else if (find_existing_python(ip->executable)) {
                             debug(L"locate_pythons_for_key: %ls: already \
@@ -303,7 +311,8 @@ found\n", ip->executable);
                                     ip->bits = 0;
                                 if (ip->bits == 0) {
                                     debug(L"locate_pythons_for_key: %ls: \
-invalid binary type: %X\n", ip->executable, attrs);
+invalid binary type: %X\n",
+                                          ip->executable, attrs);
                                 }
                                 else {
                                     if (wcschr(ip->executable, L' ') != NULL) {
@@ -316,7 +325,8 @@ invalid binary type: %X\n", ip->executable, attrs);
                                         ip->executable[n + 2] = L'\0';
                                     }
                                     debug(L"locate_pythons_for_key: %ls \
-is a %dbit executable\n", ip->executable, ip->bits);
+is a %dbit executable\n",
+                                          ip->executable, ip->bits);
                                     ++num_installed_pythons;
                                     pip = ip++;
                                     if (num_installed_pythons >=
@@ -475,7 +485,7 @@ get_configured_value(wchar_t * key)
 }
 
 static INSTALLED_PYTHON *
-locate_python(wchar_t * wanted_ver)
+locate_python(wchar_t * wanted_ver, BOOL from_shebang)
 {
     static wchar_t config_key [] = { L"pythonX" };
     static wchar_t * last_char = &config_key[sizeof(config_key) /
@@ -507,10 +517,17 @@ locate_python(wchar_t * wanted_ver)
         configured_value = get_configured_value(config_key);
         if (configured_value)
             result = find_python_by_version(configured_value);
+        /* Not found a value yet - try by major version.
+         * If we're looking for an interpreter specified in a shebang line,
+         * we want to try Python 2 first, then Python 3 (for Unix and backward
+         * compatibility). If we're being called interactively, assume the user
+         * wants the latest version available, so try Python 3 first, then
+         * Python 2.
+         */
         if (result == NULL)
-            result = find_python_by_version(L"2");
+            result = find_python_by_version(from_shebang ? L"2" : L"3");
         if (result == NULL)
-            result = find_python_by_version(L"3");
+            result = find_python_by_version(from_shebang ? L"3" : L"2");
         debug(L"search for default Python found ");
         if (result) {
             debug(L"version %ls at '%ls'\n",
@@ -665,7 +682,8 @@ run_child(wchar_t * cmdline)
     if (!ok)
         error(RC_CREATE_PROCESS, L"Failed to get exit code of process");
     debug(L"child process exit code: %d\n", rc);
-    ExitProcess(rc);
+    /* ExitProcess(rc); */
+    exit(rc);
 }
 
 static void
@@ -986,10 +1004,12 @@ typedef struct {
  */
 static BOM BOMs[] = {
     { 3, { 0xEF, 0xBB, 0xBF }, CP_UTF8 },           /* UTF-8 - keep first */
-    { 2, { 0xFF, 0xFE }, CP_UTF16LE },              /* UTF-16LE */
-    { 2, { 0xFE, 0xFF }, CP_UTF16BE },              /* UTF-16BE */
+    /* Test UTF-32LE before UTF-16LE since UTF-16LE BOM is a prefix
+     * of UTF-32LE BOM. */
     { 4, { 0xFF, 0xFE, 0x00, 0x00 }, CP_UTF32LE },  /* UTF-32LE */
     { 4, { 0x00, 0x00, 0xFE, 0xFF }, CP_UTF32BE },  /* UTF-32BE */
+    { 2, { 0xFF, 0xFE }, CP_UTF16LE },              /* UTF-16LE */
+    { 2, { 0xFE, 0xFF }, CP_UTF16BE },              /* UTF-16BE */
     { 0 }                                           /* sentinel */
 };
 
@@ -1084,18 +1104,21 @@ typedef struct {
 } PYC_MAGIC;
 
 static PYC_MAGIC magic_values[] = {
-    { 0xc687, 0xc687, L"2.0" },
-    { 0xeb2a, 0xeb2a, L"2.1" },
-    { 0xed2d, 0xed2d, L"2.2" },
-    { 0xf23b, 0xf245, L"2.3" },
-    { 0xf259, 0xf26d, L"2.4" },
-    { 0xf277, 0xf2b3, L"2.5" },
-    { 0xf2c7, 0xf2d1, L"2.6" },
-    { 0xf2db, 0xf303, L"2.7" },
-    { 0x0bb8, 0x0c3b, L"3.0" },
-    { 0x0c45, 0x0c4f, L"3.1" },
-    { 0x0c58, 0x0c6c, L"3.2" },
-    { 0x0c76, 0x0c76, L"3.3" },
+    { 50823, 50823, L"2.0" },
+    { 60202, 60202, L"2.1" },
+    { 60717, 60717, L"2.2" },
+    { 62011, 62021, L"2.3" },
+    { 62041, 62061, L"2.4" },
+    { 62071, 62131, L"2.5" },
+    { 62151, 62161, L"2.6" },
+    { 62171, 62211, L"2.7" },
+    { 3000, 3131, L"3.0" },
+    { 3141, 3151, L"3.1" },
+    { 3160, 3180, L"3.2" },
+    { 3190, 3230, L"3.3" },
+    { 3250, 3310, L"3.4" },
+    { 3320, 3351, L"3.5" },
+    { 3360, 3371, L"3.6" },
     { 0 }
 };
 
@@ -1107,7 +1130,7 @@ find_by_magic(unsigned short magic)
 
     for (mp = magic_values; mp->min; mp++) {
         if ((magic >= mp->min) && (magic <= mp->max)) {
-            result = locate_python(mp->version);
+            result = locate_python(mp->version, FALSE);
             if (result != NULL)
                 break;
         }
@@ -1299,7 +1322,7 @@ specification: '%ls'.\nIn the first line of the script, 'python' needs to be \
 followed by a valid version specifier.\nPlease check the documentation.",
                                   command);
                         /* TODO could call validate_version(command) */
-                        ip = locate_python(command);
+                        ip = locate_python(command, TRUE);
                         if (ip == NULL) {
                             error(RC_NO_PYTHON, L"Requested Python version \
 (%ls) is not installed", command);
@@ -1397,6 +1420,7 @@ process(int argc, wchar_t ** argv)
     wchar_t * av[2];
 #endif
 
+    setvbuf(stderr, (char *)NULL, _IONBF, 0);
     wp = get_env(L"PYLAUNCH_DEBUG");
     if ((wp != NULL) && (*wp != L'\0'))
         log_fp = stderr;
@@ -1524,7 +1548,7 @@ process(int argc, wchar_t ** argv)
         plen = wcslen(p);
         valid = (*p == L'-') && validate_version(&p[1]);
         if (valid) {
-            ip = locate_python(&p[1]);
+            ip = locate_python(&p[1], FALSE);
             if (ip == NULL)
                 error(RC_NO_PYTHON, L"Requested Python version (%ls) not \
 installed", &p[1]);
@@ -1548,14 +1572,16 @@ installed", &p[1]);
 #if defined(SUPPORT_VENV)
         /* Look for an active virtualenv */
         executable = find_python_by_venv();
+
+        /* If we didn't find one, look for the default Python */
         if (executable == NULL) {
-            ip = locate_python(L"");
+            ip = locate_python(L"", FALSE);
             if (ip == NULL)
                 error(RC_NO_PYTHON, L"Can't find a default Python.");
             executable = ip->executable;
         }
 #else
-        ip = locate_python(L"");
+        ip = locate_python(L"", FALSE);
         if (ip == NULL)
             error(RC_NO_PYTHON, L"Can't find a default Python.");
         executable = ip->executable;

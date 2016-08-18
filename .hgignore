@@ -1,4 +1,3 @@
-(Debug|Release)/
+(Debug|Release|__Pycache__|venv34)/
 Doc/.*\.html$
-\.(suo|ncb|user|aps|msi|msm|wix(obj|pdb)|log)$
-__pycache__/
+\.(suo|ncb|user|aps|msi|msm|wix(obj|pdb)|log|pyc)$

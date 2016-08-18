@@ -256,6 +256,8 @@ class ScriptMaker:
     def get_python_for_shebang(self, shebang):
         if 'python3' in shebang:
             result = DEFAULT_PYTHON3
+        elif not shebang:  # changed to return Python 3 in this case
+            result = DEFAULT_PYTHON3
         else:
             result = DEFAULT_PYTHON2
         return result
@@ -284,7 +286,7 @@ class BasicTest(ScriptMaker, unittest.TestCase):
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 stdout, stderr = p.communicate()
                 self.last_streams = stdout, stderr
-                self.assertTrue(self.matches(stdout, DEFAULT_PYTHON2))
+                self.assertTrue(self.matches(stdout, DEFAULT_PYTHON3))
             finally:
                 os.remove(nohyphen)
  
@@ -296,7 +298,7 @@ class BasicTest(ScriptMaker, unittest.TestCase):
             stdout, stderr = self.run_child(path)
             python = self.get_python_for_shebang(shebang)
             matches = self.matches(stdout, python)
-            self.assertTrue(matches)
+            self.assertTrue(matches, 'Failed for shebang: %s' % shebang)
 
     # Tests with UTF-8 Python sources with no BOM
     def test_shebang_utf8_nobom(self):
@@ -313,7 +315,7 @@ class BasicTest(ScriptMaker, unittest.TestCase):
                                     comment=COMMENT_WITH_UNICODE)
             stdout, stderr = self.run_child(path)
             # Python3 reads Unicode without BOM as UTF-8
-            self.assertTrue(self.is_encoding_error(stderr) or '3' in shebang)
+            self.assertTrue(self.is_encoding_error(stderr) or '3' in shebang or not shebang)
             path = self.make_script(shebang_line=shebang, encoding='utf-8',
                                     comment=COMMENT_WITH_UNICODE,
                                     coding_line=self.get_coding_line('utf-8'))
@@ -346,7 +348,8 @@ class BasicTest(ScriptMaker, unittest.TestCase):
         # Check interactive operation
         env = os.environ.copy()
         stdout, stderr = self.run_child(['-c', 'import sys; print(sys.version)'], env=env)
-        self.assertTrue(stdout.startswith(b'2.7'))        
+        # Not true any more: We favour 3 over 2 if not explicitly specified
+        # self.assertTrue(stdout.startswith(b'2.7'))
         env['VIRTUAL_ENV'] = os.path.abspath('venv34')
         stdout, stderr = self.run_child(['-c', 'import sys; print(sys.version)'], env=env)
         self.assertTrue(stdout.startswith(b'3.4'))        

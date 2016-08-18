@@ -1305,7 +1305,7 @@ path '%ls'", command);
                             }
 #endif
                             debug(L"searching PATH for python executable\n");
-                            cmd = find_on_path(L"python");
+                            cmd = find_on_path(PYTHON_EXECUTABLE);
                             debug(L"Python on path: %ls\n", cmd ? cmd->value : L"<not found>");
                             if (cmd) {
                                 debug(L"located python on PATH: %ls\n", cmd->value);

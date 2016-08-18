@@ -53,8 +53,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1, 0, 1, 6
- PRODUCTVERSION 1, 0, 1, 6
+ FILEVERSION 1, 0, 1, 7
+ PRODUCTVERSION 1, 0, 1, 7
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -72,12 +72,12 @@ BEGIN
             VALUE "Comments", "Python Wrapper for Windows"
             VALUE "CompanyName", "Python Software Foundation"
             VALUE "FileDescription", "Python Wrapper for Windows (GUI)"
-            VALUE "FileVersion", "1, 0, 1, 6"
+            VALUE "FileVersion", "1, 0, 1, 7"
             VALUE "InternalName", "wrw"
             VALUE "LegalCopyright", "Copyright (C) 2011-2015 Python Software Foundation"
             VALUE "OriginalFilename", "wrw"
             VALUE "ProductName", "Python Wrapper for Windows"
-            VALUE "ProductVersion", "1, 0, 1, 6"
+            VALUE "ProductVersion", "1, 0, 1, 7"
         END
     END
     BLOCK "VarFileInfo"

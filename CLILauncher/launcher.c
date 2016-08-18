@@ -186,7 +186,8 @@ static size_t num_installed_pythons = 0;
 
 /* to hold SOFTWARE\Python\PythonCore\X.Y\InstallPath */
 #define IP_BASE_SIZE 40
-#define IP_SIZE (IP_BASE_SIZE + MAX_VERSION_SIZE)
+#define IP_VERSION_SIZE 8
+#define IP_SIZE (IP_BASE_SIZE + IP_VERSION_SIZE)
 #define CORE_PATH L"SOFTWARE\\Python\\PythonCore"
 
 static wchar_t * location_checks[] = {

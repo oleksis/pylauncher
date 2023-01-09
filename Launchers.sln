@@ -1,17 +1,19 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual C++ Express 2008
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CLILauncher", "CLILauncher\CLILauncher.vcproj", "{632FE715-BED4-42FA-AE02-7235E88CE8E7}"
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33205.214
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CLILauncher", "CLILauncher\CLILauncher.vcxproj", "{632FE715-BED4-42FA-AE02-7235E88CE8E7}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GUILauncher", "GUILauncher\GUILauncher.vcproj", "{AA810970-1628-40C2-8AC4-27178590D91A}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GUILauncher", "GUILauncher\GUILauncher.vcxproj", "{AA810970-1628-40C2-8AC4-27178590D91A}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Associator", "Associator\Associator.vcproj", "{9EF895B4-BB9D-4D48-B070-F939B08900D7}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Associator", "Associator\Associator.vcxproj", "{9EF895B4-BB9D-4D48-B070-F939B08900D7}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Messager", "Messager\Messager.vcproj", "{E3DEDB42-3633-4E9D-95DE-A6EA808D7D58}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Messager", "Messager\Messager.vcxproj", "{E3DEDB42-3633-4E9D-95DE-A6EA808D7D58}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CLIWrapper", "CLIWrapper\CLIWrapper.vcproj", "{230AA7F2-FE5D-4884-A28A-865A9E34E4CF}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CLIWrapper", "CLIWrapper\CLIWrapper.vcxproj", "{230AA7F2-FE5D-4884-A28A-865A9E34E4CF}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GUIWrapper", "GUIWrapper\GUIWrapper.vcproj", "{36025AF3-08A2-4F98-8C95-2DC51EB09098}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GUIWrapper", "GUIWrapper\GUIWrapper.vcxproj", "{36025AF3-08A2-4F98-8C95-2DC51EB09098}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -68,5 +70,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {54D04616-DB77-4AB3-906F-EE8C120B36CF}
 	EndGlobalSection
 EndGlobal

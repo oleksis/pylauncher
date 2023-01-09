@@ -106,7 +106,7 @@ Basic Documentation
 
 Basic documentation in ReStructuredText format can be found at
 
-https://bitbucket.org/vinay.sajip/pylauncher/raw/tip/Doc/launcher.rst
+https://bitbucket.org/vinay.sajip/pylauncher/raw/6f73d810a5826957335652f601a4440668d6d670/Doc/launcher.rst
 
 Software Status
 ---------------

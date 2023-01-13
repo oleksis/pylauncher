@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="launcher.c">
+    <ClCompile Include="..\cpython\PC\launcher2.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -194,11 +194,16 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\launcher.ico" />
+    <Image Include="..\py.ico" />
+    <Image Include="..\pyc.ico" />
   </ItemGroup>
   <ItemGroup>
     <None Include="copy_config.cmd" />
     <None Include="global.ini" />
     <None Include="local.ini" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\cpython\PC\launcher-usage.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

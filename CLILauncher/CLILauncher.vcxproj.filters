@@ -33,10 +33,19 @@
     <Image Include="..\launcher.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="..\py.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\pyc.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="copy_config.cmd" />
     <None Include="global.ini" />
     <None Include="local.ini" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\cpython\PC\launcher-usage.txt" />
   </ItemGroup>
 </Project>

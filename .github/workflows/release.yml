@@ -44,6 +44,11 @@ jobs:
       with:
         python-version: '3.11'
     
+    - name: Set up WiX Toolset v4
+      run: |
+        dotnet tool install --global wix --version 4.0.0-rc.1
+        wix --version
+    
     - name: Install Docutils
       run: python -m pip install docutils
     

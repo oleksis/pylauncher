@@ -5,8 +5,9 @@ import subprocess
 import sys
 
 def invoke(command):
-    print(' '.join(command))
-    p = subprocess.Popen(command,
+    _command = ' '.join(command)
+    print(_command)
+    p = subprocess.Popen(_command,
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE,
                          shell=True)
@@ -38,24 +39,29 @@ def main(args=None):
     objfn = '%s.wixobj' % wxsname
     opts = cmdline.options
     plats = [opt for opt in opts if opt.startswith('Platform=')]
+
     if not plats:
         opts.append('Platform=x86')
+
     if 'Platform=x64' in plats:
         msifn = '%s.amd64.msi' % msiname
         pdbfn = '%s.amd64.wixpdb' % msiname
     else:
-        msifn = '%s.msi' % msiname
+        msifn = '%s.msi' % msiname      
         pdbfn = '%s.wixpdb' % msiname
+
     if opts:
-        opts = [ '-d%s' % opt for opt in opts]
-    invoke(['candle'] + opts + [wxsfn])
-    light = ['light']
-    if cmdline.extensions:
-        light.extend(['-ext', 'WixUIExtension', '-ext', 'WixUtilExtension',
-                      '-cultures:en-us'])
-    light.extend(['-o', msifn, objfn])
-    invoke(light)
-    os.remove(objfn)
+        opts = [ '-d %s' % opt for opt in opts]
+    # We use WiX v4
+    # invoke(['candle'] + opts + [wxsfn])
+    # light = ['light']
+    # if cmdline.extensions:
+    #     light.extend(['-ext', 'WixUIExtension', '-ext', 'WixUtilExtension',
+    #                   '-cultures:en-us'])
+    # light.extend(['-o', msifn, objfn])
+    # invoke(light)
+    # os.remove(objfn)
+    invoke(['wix', 'build', '-o', msifn] + opts + [wxsfn])
     os.remove(pdbfn)
     pwd = os.environ.get('SIGNPWD', '').strip()
     if pwd:

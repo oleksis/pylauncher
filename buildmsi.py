@@ -2,18 +2,18 @@ import getpass
 import os
 import sys
 
-VER = '1.0.1.7'
+VER = '2.0.0.0'
 VERSION = 'Version=%s' % VER
-MANUFACTURER = 'Manufacturer=Vinay Sajip'
+MANUFACTURER = '"Manufacturer=Oleksis Fraga"'
 X86 = 'Platform=x86'
 X64 = 'Platform=x64'
 TOWIN = 'ToWindows'
 
 def main():
-    signpwd = getpass.getpass('Password for signing:')
-    import builddoc
-    builddoc.main()
-    os.environ['SIGNPWD'] = signpwd
+    # signpwd = getpass.getpass('Password for signing:')
+    # os.environ['SIGNPWD'] = signpwd
+    # import builddoc
+    # builddoc.main()
     import makemsi
     makemsi.main(['-o', 'launchwin-%s' % VER, X86, VERSION, MANUFACTURER, TOWIN, 'launcher'])
     makemsi.main(['-o', 'launcher-%s' % VER, X86, VERSION, MANUFACTURER, 'launcher'])

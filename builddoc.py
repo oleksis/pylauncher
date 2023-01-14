@@ -1,4 +1,4 @@
-#!python3.2
+#!python3
 try:
     from docutils.core import publish_cmdline
 except ImportError:
@@ -6,9 +6,11 @@ except ImportError:
 import os.path
 import sys
 
+
 def main():
     if publish_cmdline is None:
-        sys.stderr.write('Unable to produce documentation: docutils not found.\n')
+        sys.stderr.write(
+            'Unable to produce documentation: docutils not found.\n')
         rc = 1
     else:
         infile = os.path.join('Doc', 'launcher.rst')
@@ -23,6 +25,7 @@ def main():
                              e)
             rc = 2
     return rc
+
 
 if __name__ == '__main__':
     sys.exit(main())

@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 
+
 def invoke(command):
     _command = ' '.join(command)
     print(_command)
@@ -19,6 +20,7 @@ def invoke(command):
         if stdout:
             print(stdout.decode('utf-8'))
         sys.exit(p.returncode)
+
 
 def main(args=None):
     parser = argparse.ArgumentParser()
@@ -47,11 +49,11 @@ def main(args=None):
         msifn = '%s.amd64.msi' % msiname
         pdbfn = '%s.amd64.wixpdb' % msiname
     else:
-        msifn = '%s.msi' % msiname      
+        msifn = '%s.msi' % msiname
         pdbfn = '%s.wixpdb' % msiname
 
     if opts:
-        opts = [ '-d %s' % opt for opt in opts]
+        opts = ['-d %s' % opt for opt in opts]
     # We use WiX v4
     # invoke(['candle'] + opts + [wxsfn])
     # light = ['light']
@@ -67,6 +69,7 @@ def main(args=None):
     if pwd:
         invoke(['sign', '/d', 'Python Launcher Installer', msifn])
     return 0
+
 
 if __name__ == '__main__':
     sys.exit(main())

@@ -390,8 +390,8 @@ FodyWeavers.xsd
 # Windows Installer files from build outputs
 *.cab
 *.msi
-!launcher-2.0.0.0.amd64.msi
-!docs/launcher-2.0.0.0.amd64.msi
+*.msi
+!docs/*.msi
 *.msix
 *.msm
 *.msp

@@ -13,8 +13,9 @@ def main():
             'Unable to produce documentation: docutils not found.\n')
         rc = 1
     else:
-        infile = os.path.join('Doc', 'launcher.rst')
-        outfile = os.path.join('Doc', 'launcher.html')
+        docs = 'docs'
+        infile = os.path.join(docs, 'launcher.rst')
+        outfile = os.path.join(docs, 'launcher.html')
         try:
             publish_cmdline(writer_name='html',
                             argv=[infile, outfile])

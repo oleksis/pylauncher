@@ -55,11 +55,9 @@ jobs:
     - name: Build MSI
       run: python ./buildmsi.py
     
-    - uses: "marvinpinto/action-automatic-releases@latest"
-      with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "latest"
-        title: "Python Launcher for Windows"
-        prerelease: false
-        files: |
-          *.msi
+    - name: Create release and attach files
+      run: |
+        tagname="${GITHUB_REF#refs/tags/}"
+        gh release create "$tagname" *.msi --latest --title "Python Launcher for Windows"
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}

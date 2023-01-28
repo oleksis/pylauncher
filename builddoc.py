@@ -15,7 +15,7 @@ def main():
     else:
         docs = 'docs'
         infile = os.path.join(docs, 'launcher.rst')
-        outfile = os.path.join(docs, 'launcher.html')
+        outfile = os.path.join(docs, 'index.html')
         try:
             publish_cmdline(writer_name='html',
                             argv=[infile, outfile])

@@ -1,0 +1,15 @@
+/*
+:Author: Oleksis Fraga Menendez
+:Contact: oleksis.fraga@gmail.com
+:Copyright: This stylesheet has been placed in the public domain.
+
+Stylesheet for use with Docutils.
+*/
+
+body {
+    background-color: #fff;
+    padding: 50px;
+    font: 14px/1.5 "Noto Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    /* color: #727272; */
+    font-weight: 400;
+}

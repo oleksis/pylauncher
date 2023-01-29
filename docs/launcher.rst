@@ -2,10 +2,15 @@
 Python Launcher for Windows
 ===========================
 
-The Python launcher for Windows is a utility which aids in the location and
-execution of different Python versions.  It allows scripts (or the
-command-line) to indicate a preference for a specific Python version, and
-will locate and execute that version.
+.. container:: pylauncher-intro
+
+  .. image:: images/py-launcher.png
+      :alt: Logo Python launcher for Windows
+
+  The Python launcher for Windows is a utility which aids in the location and
+  execution of different Python versions.  It allows scripts (or the
+  command-line) to indicate a preference for a specific Python version, and
+  will locate and execute that version.
 
 .. contents::
 

@@ -396,8 +396,9 @@ FodyWeavers.xsd
 *.msm
 *.msp
 
-# Files built by WiX Toolset
+# WiX Toolset
 *.wixpdb
+.wix/
 
 # JetBrains Rider
 *.sln.iml

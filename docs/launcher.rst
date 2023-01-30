@@ -4,7 +4,7 @@ Python Launcher for Windows
 
 .. container:: pylauncher-intro
 
-  .. image:: images/py-launcher.png
+  .. image:: py-launcher.png
       :alt: Logo Python launcher for Windows
 
   The Python launcher for Windows is a utility which aids in the location and

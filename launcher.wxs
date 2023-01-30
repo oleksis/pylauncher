@@ -1,13 +1,13 @@
-﻿<?if $(var.Platform) = x64 ?>
-  <?define ProdCode = '1CB6C42B-5887-47CF-AF21-988256F0455B' ?>
-  <?define ProdName = 'Python Launcher (64-bit)' ?>
-  <?define BinDir = 'x64\Release' ?>
-  <?define CompGuid = '46BCEFDD-EAFE-49A8-9FCB-27371AAC7ABD' ?>
+<?if $(Platform) = x64?>
+  <?define ProdCode = '1CB6C42B-5887-47CF-AF21-988256F0455B'?>
+  <?define ProdName = 'Python Launcher (64-bit)'?>
+  <?define BinDir = 'x64\Release'?>
+  <?define CompGuid = '46BCEFDD-EAFE-49A8-9FCB-27371AAC7ABD'?>
 <?else?>
-  <?define ProdCode = '298B5D62-1287-427F-B8D9-B44D605F8F6B' ?>
-  <?define ProdName = 'Python Launcher' ?>
-  <?define BinDir = 'Release' ?>
-  <?define CompGuid = '13D8FC31-04E9-4AC9-AE0B-E28F61DE99B9' ?>
+  <?define ProdCode = '298B5D62-1287-427F-B8D9-B44D605F8F6B'?>
+  <?define ProdName = 'Python Launcher'?>
+  <?define BinDir = 'Release'?>
+  <?define CompGuid = '13D8FC31-04E9-4AC9-AE0B-E28F61DE99B9'?>
 <?endif?>
 
 <?ifndef Version?>
@@ -19,88 +19,91 @@
 <?endif?>
 
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-  <Package Name="$(var.ProdName)" Language="1033" Version="$(var.Version)" Manufacturer="$(var.Manufacturer)" UpgradeCode="36B0A82E-0B4E-47CD-895B-FD4EC726B3AC" Compressed="yes" ProductCode="$(var.ProdCode)">
-	<SummaryInformation Description="Python Launcher facilitates running Python files on Windows." />
+    <Package Name="$(ProdName)" Language="1033" Version="$(Version)" Manufacturer="$(Manufacturer)"
+        UpgradeCode="36B0A82E-0B4E-47CD-895B-FD4EC726B3AC" Compressed="yes"
+        ProductCode="$(ProdCode)">
+        <SummaryInformation
+            Description="Python Launcher facilitates running Python files on Windows." />
 
-    <Media Id="1" Cabinet="launcher.cab" EmbedCab="yes" />
- 
-    <?ifdef ToSystem ?>
-        <?if $(var.Platform) = x64 ?>
-            <?define TheTarget = '[System64Folder]' ?>
+        <Media Id="1" Cabinet="launcher.cab" EmbedCab="yes" />
+        <?ifdef ToSystem?>
+            <?if $(Platform) = x64?>
+                <?define TheTarget = '[System64Folder]'?>
+            <?else?>
+                <?define TheTarget = '[SystemFolder]'?>
+            <?endif?>
         <?else?>
-            <?define TheTarget = '[SystemFolder]' ?>
+            <?ifdef ToWindows ?>
+                <?define TheTarget = '[WindowsFolder]' ?>
+            <?else ?>
+                <?if $(Platform) = x64 ?>
+                    <?define PFF = 'ProgramFiles64Folder' ?>
+                <?else ?>
+                    <?define PFF = 'ProgramFilesFolder' ?>
+                <?endif ?>
+                <?define TheTarget = '[$(PFF)][ProductName]' ?>
+            <?endif ?>
         <?endif?>
-    <?else?>
-      <?ifdef ToWindows ?>
-        <?define TheTarget = '[WindowsFolder]' ?>
-      <?else ?>
-        <?if $(var.Platform) = x64 ?>
-            <?define PFF = 'ProgramFiles64Folder' ?>
-        <?else ?>
-            <?define PFF = 'ProgramFilesFolder' ?>
-        <?endif ?>
-        <?define TheTarget = '[$(var.PFF)][ProductName]' ?>
-      <?endif ?>
-    <?endif?>
 
-    <CustomAction Id="set_target_dir" Return="check" Property="INSTALLFOLDER" Value="$(var.TheTarget)" />
+        <CustomAction Id="set_target_dir" Return="check" Property="INSTALLFOLDER"
+            Value="$(TheTarget)" />
 
-    <Binary Id="associator" SourceFile="$(sys.SOURCEFILEDIR)$(var.BinDir)\Associator.exe" />
-    <Binary Id="messager" SourceFile="$(sys.SOURCEFILEDIR)$(var.BinDir)\Messager.exe" />
+        <Binary Id="associator" SourceFile="$(sys.SOURCEFILEDIR)$(BinDir)\Associator.exe" />
+        <Binary Id="messager" SourceFile="$(sys.SOURCEFILEDIR)$(BinDir)\Messager.exe" />
 
-    <CustomAction Id="associate" Impersonate="no" Execute="immediate" ExeCommand="" Return="ignore" BinaryRef="associator" />
+        <CustomAction Id="associate" Impersonate="no" Execute="immediate" ExeCommand=""
+            Return="ignore" BinaryRef="associator" />
+        <CustomAction Id="notify_success" Impersonate="yes" Execute="immediate"
+            ExeCommand="40~Python Launcher was successfully installed.~Installation Status~3000"
+            Return="ignore" BinaryRef="messager" />
 
-    <CustomAction Id="notify_success" Impersonate="yes" Execute="immediate" ExeCommand="40~Python Launcher was successfully installed.~Installation Status~3000" Return="ignore" BinaryRef="messager" />
+        <InstallExecuteSequence>
+            <Custom Action="set_target_dir" Before="CostFinalize" />
+            <Custom Action="associate" After="InstallFinalize" Condition="REMOVE ~= &quot;ALL&quot;" />
+            <Custom Action="notify_success" After="InstallFinalize" Condition="NOT Installed" />
+        </InstallExecuteSequence>
 
-    <InstallExecuteSequence>
-      <Custom Action="set_target_dir" Before="CostFinalize" />
-      <Custom Action="associate" After="InstallFinalize" Condition="REMOVE ~= &quot;ALL&quot;" />
-      <Custom Action="notify_success" After="InstallFinalize" Condition="NOT Installed" />
-    </InstallExecuteSequence>
+        <Feature Id="launcher_feature" Level="1">
+            <ComponentRef Id="launcher" />
+        </Feature>
 
-    <Feature Id="launcher_feature" Level="1">
-      <ComponentRef Id="launcher" />
-    </Feature>
+        <Component Id="launcher" Guid="$(CompGuid)" Directory="INSTALLFOLDER">
+            <File Id="py" Name="py.exe" Source="$(sys.SOURCEFILEDIR)$(BinDir)\py.exe" />
+            <File Id="pyw" Name="pyw.exe" Source="$(sys.SOURCEFILEDIR)$(BinDir)\pyw.exe" />
+            <File Id="ini" Name="py.ini.template" Source="$(sys.SOURCEFILEDIR)py.ini.template" />
+            <ProgId Id="Python.File" Description="Python File" Icon="py" IconIndex="1">
+                <Extension Id="py">
+                    <Verb Id="open" Command="Open" TargetFile="py" Argument="&quot;%1&quot; %*" />
+                </Extension>
+                <Extension Id="pyz">
+                    <!-- No Verb needed here, as it's associated with ProgId
+                         and not the extension, and the same launcher is used. -->
+                </Extension>
+            </ProgId>
+            <ProgId Id="Python.NoConFile" Description="Python File (no console)" Icon="py"
+                IconIndex="1">
+                <Extension Id="pyw">
+                    <Verb Id="open" Command="Open" TargetFile="pyw" Argument="&quot;%1&quot; %*" />
+                </Extension>
+                <Extension Id="pyzw">
+                    <!-- No Verb needed here, as it's associated with ProgId
+                         and not the extension, and the same launcher is used. -->
+                </Extension>
+            </ProgId>
+            <ProgId Id="Python.CompiledFile" Description="Compiled Python File" Icon="py"
+                IconIndex="2">
+                <Extension Id="pyc">
+                    <Verb Id="open" Command="Open" TargetFile="py" Argument="&quot;%1&quot; %*" />
+                </Extension>
+                <Extension Id="pyo">
+                    <!-- No Verb needed here, as it's associated with ProgId
+                         and not the extension, and the same launcher is used. -->
+                </Extension>
+            </ProgId>
+        </Component>
+    </Package>
 
-    <Component Id="launcher" Guid="$(var.CompGuid)" Directory="INSTALLFOLDER">
-        <File Id="py" Name="py.exe" Source="$(sys.SOURCEFILEDIR)$(var.BinDir)\py.exe" />
-        <File Id="pyw" Name="pyw.exe" Source="$(sys.SOURCEFILEDIR)$(var.BinDir)\pyw.exe" />
-		<File Id="ini" Name="py.ini.template" Source="$(sys.SOURCEFILEDIR)py.ini.template" />
-        <ProgId Id="Python.File" Description="Python File" Icon="py" IconIndex="1">
-        <Extension Id="py">
-            <Verb Id="open" Command="Open" TargetFile="py" Argument="&quot;%1&quot; %*" />
-        </Extension>
-        <Extension Id="pyz">
-            <!-- No Verb needed here, as it's associated with ProgId
-                and not the extension, and the same launcher
-                is used. -->
-        </Extension>
-        </ProgId>
-        <ProgId Id="Python.NoConFile" Description="Python File (no console)" Icon="py" IconIndex="1">
-        <Extension Id="pyw">
-            <Verb Id="open" Command="Open" TargetFile="pyw" Argument="&quot;%1&quot; %*" />
-        </Extension>
-        <Extension Id="pyzw">
-            <!-- No Verb needed here, as it's associated with ProgId
-                and not the extension, and the same launcher
-                is used. -->
-        </Extension>
-        </ProgId>
-        <ProgId Id="Python.CompiledFile" Description="Compiled Python File" Icon="py" IconIndex="2">
-        <Extension Id="pyc">
-            <Verb Id="open" Command="Open" TargetFile="py" Argument="&quot;%1&quot; %*" />
-        </Extension>
-        <Extension Id="pyo">
-            <!-- No Verb needed here, as it's associated with ProgId
-                and not the extension, and the same launcher
-                is used. -->
-        </Extension>
-        </ProgId>
-    </Component>
-  </Package>
-
-  <Fragment>
-    <Directory Id="INSTALLFOLDER" Name="SourceDir" />
-  </Fragment>
-
+    <Fragment>
+        <Directory Id="INSTALLFOLDER" Name="SourceDir" />
+    </Fragment>
 </Wix>

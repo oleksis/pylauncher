@@ -54,15 +54,13 @@ def main(args=None):
 
     if opts:
         opts = ['-d %s' % opt for opt in opts]
-    # We use WiX v4
-    # invoke(['candle'] + opts + [wxsfn])
-    # light = ['light']
-    # if cmdline.extensions:
-    #     light.extend(['-ext', 'WixUIExtension', '-ext', 'WixUtilExtension',
-    #                   '-cultures:en-us'])
-    # light.extend(['-o', msifn, objfn])
-    # invoke(light)
-    # os.remove(objfn)
+        # We use WiX v4
+        if cmdline.extensions:
+            opts.extend([
+                            '-ext', 'WixToolset.UI.wixext',
+                            '-ext', 'WixToolset.Util.wixext'
+                        ])  # '-cultures:en-us'
+   
     invoke(['wix', 'build', '-o', msifn] + opts + [wxsfn])
     os.remove(pdbfn)
     pwd = os.environ.get('SIGNPWD', '').strip()

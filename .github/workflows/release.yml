@@ -49,11 +49,20 @@ jobs:
         dotnet tool install --global wix --version 4.0.0-rc.2
         wix --version
     
+    - name: Add WiX extensions (UI / Util)
+      run: |
+        wix extension add WixToolset.UI.wixext
+        wix extension add WixToolset.Util.wixext
+        wix extension list
+    
     - name: Install Docutils
       run: python -m pip install -r requirements.txt
     
     - name: Build MSI
       run: python ./buildmsi.py
+    
+    - name: Build GUI-MSI
+      run: ./uilauncher.ps1
     
     - name: Create release and attach files
       run: |

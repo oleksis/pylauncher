@@ -11,12 +11,11 @@ Source Builds
 -------------
 
 You should be able to clone this repository, then build the executables using
-Visual Studio or Visual Studio Express (2008 Editions - 2010 Editiona should
-also work, but haven't been tested).
+Visual Studio (2022 Editions should work).
 
-Once the executables have been built, you can run buildmsi.cmd to build the
-installers (you'll need the WiX toolkit installed and on your path in order to
-do this).
+Once the executables have been built, you can run buildmsi.py to build the
+installers (you'll need the WiX Toolset v4 https://wixtoolset.org/docs/intro/#nettool
+installed and on your path in order to do this).
 
 Installation and Uninstallation
 -------------------------------
@@ -106,7 +105,7 @@ Basic Documentation
 
 Basic documentation in ReStructuredText format can be found at
 
-https://bitbucket.org/vinay.sajip/pylauncher/raw/6f73d810a5826957335652f601a4440668d6d670/Doc/launcher.rst
+https://github.com/oleksis/pylauncher/blob/master/docs/launcher.rst
 
 Software Status
 ---------------

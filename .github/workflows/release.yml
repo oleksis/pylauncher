@@ -58,15 +58,13 @@ jobs:
     - name: Install Docutils
       run: python -m pip install -r requirements.txt
     
-    - name: Build MSI
-      run: python ./buildmsi.py
-    
     - name: Build GUI-MSI
-      run: ./uilauncher.ps1
-    
+      run: python ./buildmsi.py
+
     - name: Create release and attach files
       run: |
         tagname="${GITHUB_REF#refs/tags/}"
         gh release create "$tagname" *.msi --latest --title "Python Launcher for Windows"
+      shell: bash
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}

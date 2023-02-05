@@ -58,8 +58,10 @@ jobs:
     - name: Install Docutils
       run: python -m pip install -r requirements.txt
     
-    - name: Build GUI-MSI
-      run: python ./buildmsi.py
+    - name: Bump version and Build GUI-MSI
+      run: |
+        python ./bumpver.py
+        python ./buildmsi.py
 
     - name: Create release and attach files
       run: |

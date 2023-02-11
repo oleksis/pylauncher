@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 def main():
-    VER = '2.0.0.1'
+    VER = '2.0.0.2'
     py_files = ["buildmsi.py"]
     rc_sources = [
         "CLILauncher/CLILauncher.rc",

@@ -5,7 +5,7 @@ import sys
 import builddoc
 import makemsi
 
-VER = '2.0.0.1'
+VER = '2.0.0.2'
 VERSION = 'Version=%s' % VER
 MANUFACTURER = '"Manufacturer=Oleksis Fraga"'
 X86 = 'Platform=x86'

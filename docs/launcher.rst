@@ -6,6 +6,7 @@ Python Launcher for Windows
 
   .. image:: py-launcher.png
       :alt: Logo Python launcher for Windows
+      :align: left
 
   The Python launcher for Windows is a utility which aids in the location and
   execution of different Python versions.  It allows scripts (or the

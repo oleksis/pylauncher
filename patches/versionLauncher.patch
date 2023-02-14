@@ -1,0 +1,135 @@
+ PC/launcher2.c | 73 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 71 insertions(+), 2 deletions(-)
+
+diff --git a/PC/launcher2.c b/PC/launcher2.c
+index beeb2ae46b8..7ebc8fe5998 100644
+--- a/PC/launcher2.c
++++ b/PC/launcher2.c
+@@ -318,6 +318,26 @@ _startsWithSeparated(const wchar_t *x, int xLen, const wchar_t *y, int yLen, con
+ }
+ 
+ 
++static DWORD version_high = 0;
++static DWORD version_low = 0;
++
++static void
++get_version_info(wchar_t * version_text, size_t size)
++{
++    WORD maj, min, rel, bld;
++
++    if (!version_high && !version_low)
++        wcsncpy_s(version_text, size, L"0.1", _TRUNCATE);   /* fallback */
++    else {
++        maj = HIWORD(version_high);
++        min = LOWORD(version_high);
++        rel = HIWORD(version_low);
++        bld = LOWORD(version_low);
++        _snwprintf_s(version_text, size, _TRUNCATE, L"%d.%d.%d.%d", maj,
++                     min, rel, bld);
++    }
++}
++
+ 
+ /******************************************************************************\
+  ***                               HELP TEXT                                ***
+@@ -359,7 +379,10 @@ showHelpText(wchar_t ** argv)
+     // Ensure null termination
+     wUsage[cchUsage] = L'\0';
+ 
+-    fwprintf(stdout, wUsage, (L"" PY_VERSION), argv[0]);
++    wchar_t version_text [MAX_PATH];
++    get_version_info(version_text, MAX_PATH);
++
++    fwprintf(stdout, wUsage, version_text, argv[0]);
+     fflush(stdout);
+ 
+     free((void *)wUsage);
+@@ -436,6 +459,8 @@ typedef struct {
+     // if set, limits search to registry keys with the specified Company
+     // This is intended for debugging and testing only
+     const wchar_t *limitToCompany;
++    // if true, display Python Launcher version without launching
++    bool versionLauncher;
+     // dynamically allocated buffers to free later
+     struct _SearchInfoBuffer *_buffer;
+ } SearchInfo;
+@@ -517,6 +542,7 @@ dumpSearchInfo(SearchInfo *search)
+     DEBUG_BOOL(listPaths);
+     DEBUG_BOOL(help);
+     DEBUG(limitToCompany);
++    DEBUG_BOOL(versionLauncher);
+ #undef DEBUG_BOOL
+ #undef DEBUG_2
+ #undef DEBUG
+@@ -681,6 +707,8 @@ parseCommandLine(SearchInfo *search)
+                 search->help = true;
+                 // Do not update restOfCmdLine so that we trigger the help
+                 // message from whichever interpreter we select
++            } else if (MATCHES(L"0v") || MATCHES(L"-version-launcher")) {
++                search->versionLauncher = true;
+             }
+         }
+     }
+@@ -2587,13 +2615,48 @@ process(int argc, wchar_t ** argv)
+     EnvironmentInfo *envs = NULL;
+     EnvironmentInfo *env = NULL;
+     wchar_t launchCommand[MAXLEN];
++    BOOL valid;
++    DWORD size;
++    wchar_t message[MSGSIZE];
++    void * version_data;
++    wchar_t version_text [MAX_PATH];
++    VS_FIXEDFILEINFO * file_info;
++    UINT block_size;
++
++    size = GetFileVersionInfoSizeW(argv[0], &size);
++    if (size == 0) {
++        winerror(GetLastError(), message, MSGSIZE);
++        debug(L"GetFileVersionInfoSize failed: %ls\n", message);
++    }
++    else {
++        version_data = malloc(size);
++        if (version_data) {
++            valid = GetFileVersionInfoW(argv[0], 0, size,
++                                        version_data);
++            if (!valid)
++                debug(L"GetFileVersionInfo failed: %X\n", GetLastError());
++            else {
++                valid = VerQueryValueW(version_data, L"\\",
++                                       (LPVOID *) &file_info, &block_size);
++                if (!valid)
++                    debug(L"VerQueryValue failed: %X\n", GetLastError());
++                else {
++                    version_high = file_info->dwFileVersionMS;
++                    version_low = file_info->dwFileVersionLS;
++                }
++            }
++            free(version_data);
++        }
++    }
++
++    get_version_info(version_text, MAX_PATH);
+ 
+     memset(launchCommand, 0, sizeof(launchCommand));
+ 
+     if (isEnvVarSet(L"PYLAUNCHER_DEBUG")) {
+         setvbuf(stderr, (char *)NULL, _IONBF, 0);
+         log_fp = stderr;
+-        debug(L"argv0: %s\nversion: %S\n", argv[0], PY_VERSION);
++        debug(L"argv0: %s\nversion: %s\n", argv[0], version_text);
+     }
+ 
+     DWORD len = GetEnvironmentVariableW(L"PYLAUNCHER_LIMIT_TO_COMPANY", NULL, 0);
+@@ -2622,6 +2685,12 @@ process(int argc, wchar_t ** argv)
+         }
+     }
+ 
++    if (search.versionLauncher) {
++        fwprintf(stdout, L"Python Launcher for Windows Version %s\n", version_text);
++        fflush(stdout);
++        goto abort;
++    }
++
+     // Select best environment
+     // This is early so that we can show the default when listing, but all
+     // responses to any errors occur later.

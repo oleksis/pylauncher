@@ -52,7 +52,7 @@ jobs:
     
     - name: Set up WiX Toolset v4 RC2
       run: |
-        dotnet tool install --global wix --version 4.0.0-rc.2
+        dotnet tool install --global wix --version 4.0.0
         wix --version
     
     - name: Add WiX extensions (UI / Util)
